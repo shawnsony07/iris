@@ -74,7 +74,7 @@ export default function Home() {
 
   const handleVideoLoad = () => {
     let lastVideoTime = -1;
-    const filter = new KalmanFilter2D(40, 0.05); 
+    const filter = new KalmanFilter2D(100, 0.01); 
     const { setCursor } = useIrisStore.getState();
     let animationFrameId: number;
 
@@ -99,17 +99,31 @@ export default function Home() {
                   const midY = (leftInner.y + leftOuter.y) / 2;
                   
                   // 2. Isolate gaze vector (displacement)
-                  const dx = iris.x - midX;
-                  const dy = iris.y - midY;
+                  let dx = iris.x - midX;
+                  let dy = iris.y - midY;
 
-                  // 3. Apply sensitivity amplification (configurable)
-                  const gainX = 30; // amplify horizontal movement
-                  const gainY = 30; // amplify vertical movement
+                  // 3. Implement the Calibrated Deadzone
+                  // MediaPipe raw eye displacement rarely exceeds 0.015. 
+                  // A deadzone of 0.02 was swallowing 100% of movements. Reduced to 0.002.
+                  const magnitude = Math.sqrt(dx * dx + dy * dy);
+                  if (magnitude < 0.002) {
+                    dx = 0;
+                    dy = 0;
+                  }
 
-                  // 4. Normalize and Clamp to [0, 1] around a 0.5 center
+                  // 4. Apply the Calibrated Gain and Exponent
+                  // Increased gain from 85 to 150 because values < 1 shrink when cubed.
+                  const gain = 150.0;
+                  const exponent = 3.0;
+
+                  // Apply absolute value before the power function, then re-apply the original direction
+                  const expX = Math.sign(dx) * Math.pow(Math.abs(dx * gain), exponent);
+                  const expY = Math.sign(dy) * Math.pow(Math.abs(dy * gain), exponent);
+
+                  // Map to standard 0.0 to 1.0 layout, centered at 0.5
                   // Inverting X so looking left moves left (adjusting for camera mirror)
-                  const rawX = 0.5 - (dx * gainX);
-                  const rawY = 0.5 + (dy * gainY);
+                  const rawX = 0.5 - expX;
+                  const rawY = 0.5 + expY;
 
                   const clampedX = Math.min(Math.max(rawX, 0.0), 1.0);
                   const clampedY = Math.min(Math.max(rawY, 0.0), 1.0);
@@ -117,8 +131,14 @@ export default function Home() {
                   const screenX = clampedX * window.innerWidth;
                   const screenY = clampedY * window.innerHeight;
 
-                  const smoothed = filter.update(screenX, screenY);
-                  setCursor(smoothed.x, smoothed.y);
+                  // Strict bounds check against NaN
+                  if (Number.isFinite(screenX) && Number.isFinite(screenY)) {
+                    const smoothed = filter.update(screenX, screenY);
+                    setCursor(
+                      Math.max(0, Math.min(smoothed.x, window.innerWidth)), 
+                      Math.max(0, Math.min(smoothed.y, window.innerHeight))
+                    );
+                  }
                 }
               }
             }
@@ -137,7 +157,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-slate-950 text-slate-100 overflow-hidden relative">
+    <main className="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 text-white relative">
       <video
         ref={videoRef}
         autoPlay
@@ -148,7 +168,7 @@ export default function Home() {
       
       <NodeBuilder />
       
-      <div className="flex-1 flex p-4 gap-4 z-10 relative">
+      <div className="flex-1 min-h-0 flex flex-row p-4 gap-4 z-10 relative">
         <div className="flex-[3]">
           <GridUI />
         </div>

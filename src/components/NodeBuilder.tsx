@@ -5,7 +5,7 @@ export function NodeBuilder() {
   const { selectedNodes, clearNodes } = useIrisStore();
 
   return (
-    <div className="w-full bg-slate-800 p-4 h-[120px] flex items-center justify-between shadow-md z-10 relative shrink-0">
+    <div className="w-full bg-slate-800 p-4 h-[10vh] flex items-center justify-between shadow-md z-10 relative shrink-0">
       <div className="flex gap-2 flex-wrap overflow-y-auto h-full content-start items-start flex-1 mr-4 pr-2">
         {selectedNodes.map((node, i) => (
           <span key={i} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xl font-medium shadow">

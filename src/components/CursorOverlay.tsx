@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
+import { webLlmService } from "@/utils/webLlmService";
+import { useAmbientMic } from "@/hooks/useAmbientMic";
 
 export function CursorOverlay() {
-  const { cursor, addNode, clearNodes } = useIrisStore();
+  const { cursor, addNode, clearNodes, sleepMode, setSleepMode, incrementFrequency, setActiveTone } = useIrisStore();
+  const { toggleMic } = useAmbientMic();
   const [dwellProgress, setDwellProgress] = useState(0);
   
   const currentHoverRef = useRef<Element | null>(null);
@@ -18,8 +21,13 @@ export function CursorOverlay() {
     const target = hoveredElements.find(el => {
       if (el.getAttribute("data-disabled") === "true") return false;
       return el.id.startsWith("grid-block-") || 
+             el.id.startsWith("tone-block-") ||
+             el.id === "wake-block" ||
+             el.id === "close-modal" ||
              el.id === "speak-block" || 
-             el.id === "clear-block";
+             el.id === "clear-block" ||
+             el.id === "mic-toggle-block" ||
+             el.hasAttribute("data-block-id");
     }) || null;
 
     if (target !== currentHoverRef.current) {
@@ -48,24 +56,61 @@ export function CursorOverlay() {
         // Already selected, keep visually 0.
         setDwellProgress(0);
       } else {
+        // Sleep Mode Check
+        if (sleepMode && target.id !== "wake-block") {
+          setDwellProgress(0);
+          return;
+        }
+
         const dwellTime = performance.now() - hoverStartRef.current;
-        if (dwellTime >= 800) {
+        const requiredDwell = target.id === "wake-block" ? 3000 : 800;
+
+        if (dwellTime >= requiredDwell) {
           if (target.id === "speak-block") {
             target.dispatchEvent(new CustomEvent('dwell-click'));
+          } else if (target.id === "mic-toggle-block") {
+            toggleMic();
           } else if (target.id === "clear-block") {
             clearNodes();
+          } else if (target.id === "wake-block") {
+            setSleepMode(false);
+          } else if (target.id === "close-modal") {
+            useIrisStore.getState().setShowMediaModal(false);
+          } else if (target.id.startsWith("tone-block-")) {
+            const tone = target.id.replace("tone-block-", "");
+            setActiveTone(tone);
           } else {
-            const nodeVal = target.id.replace("grid-block-", "");
-            addNode(nodeVal);
+            const nodeVal = target.hasAttribute("data-block-id") 
+              ? target.getAttribute("data-block-id")! 
+              : target.id.replace("grid-block-", "");
+
+            if (nodeVal === "EMERGENCY") {
+              const utterance = new SpeechSynthesisUtterance("Emergency triggered");
+              window.speechSynthesis.speak(utterance);
+              fetch("https://api.twilio.com/2010-04-01/Accounts/AC_mock/Messages.json", { method: "POST" }).catch(() => {});
+            } else if (nodeVal === "Sleep Mode") {
+              setSleepMode(true);
+            } else if (nodeVal === "Re-Optimize Layout") {
+              useIrisStore.getState().reoptimizeLayout();
+            } else if (nodeVal === "Music" && useIrisStore.getState().selectedNodes.includes("Entertainment")) {
+              useIrisStore.getState().setShowMediaModal(true);
+              clearNodes();
+            } else {
+              addNode(nodeVal);
+              incrementFrequency(nodeVal);
+              
+              // Fire prediction background task
+              webLlmService.predictNextWords(useIrisStore.getState().selectedNodes);
+            }
           }
           lastSelectedRef.current = target; // Lock
           setDwellProgress(0);
         } else {
-          setDwellProgress(dwellTime / 800);
+          setDwellProgress(dwellTime / requiredDwell);
         }
       }
     }
-  }, [cursor, addNode, clearNodes]);
+  }, [cursor, addNode, clearNodes, sleepMode, setSleepMode, incrementFrequency, setActiveTone]);
 
   return (
     <div
