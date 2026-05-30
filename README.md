@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Iris
+
+Project Iris is an advanced, strictly ergonomically-designed, eye-tracking interface built for accessibility and independence. It allows users to control their environment and communicate using only their eyes, leveraging cutting edge on-device AI.
+
+## Key Features
+
+1. **Strict Fitts's Law UI Ergonomics:** The UI features massive dead-zone gaps (80px) and large, easily targetable 120px tall buttons. This eliminates eye-jitter clipping and prevents accidental selections, giving the user safe resting zones.
+2. **Context-Aware WebLLM:** Employs an entirely local, in-browser Large Language Model (WebLLM) to intelligently predict the user's intent based on selected nodes and ambient context, operating with extreme speed and preserving complete privacy.
+3. **Local AI Voice Synthesis (TinyTTS):** Converts predicted intent to high-quality audio entirely on-device via `onnxruntime-web` WebAssembly logic.
+4. **Calibrated Deadzones:** Employs advanced Math mapping directly into the Kalman filter to lock onto the user's exact gaze intention, establishing an unshakeable point of interaction even with a basic webcam.
+
+## Ambient Microphone Requirements
+
+**Explicit Targeting & Browser Requirement:**
+The Ambient Microphone feature relies on the native `SpeechRecognition` API. Therefore, this feature **requires Google Chrome or Microsoft Edge** to function. (Edge utilizes Microsoft's Azure backend for the API, which works perfectly). 
+If accessed on unsupported browsers, the application will degrade gracefully and present a notification that Chrome or Edge is required.
 
 ## Getting Started
 
-First, run the development server:
-
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000) with your browser to launch Project Iris.

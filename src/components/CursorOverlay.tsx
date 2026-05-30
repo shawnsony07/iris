@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { webLlmService } from "@/utils/webLlmService";
 import { useAmbientMic } from "@/hooks/useAmbientMic";
+import { ttsService } from "@/utils/ttsService";
 
 export function CursorOverlay() {
   const { cursor, addNode, clearNodes, sleepMode, setSleepMode, incrementFrequency, setActiveTone } = useIrisStore();
@@ -85,8 +86,7 @@ export function CursorOverlay() {
               : target.id.replace("grid-block-", "");
 
             if (nodeVal === "EMERGENCY") {
-              const utterance = new SpeechSynthesisUtterance("Emergency triggered");
-              window.speechSynthesis.speak(utterance);
+              ttsService.speak("Emergency triggered");
               fetch("https://api.twilio.com/2010-04-01/Accounts/AC_mock/Messages.json", { method: "POST" }).catch(() => {});
             } else if (nodeVal === "Sleep Mode") {
               setSleepMode(true);

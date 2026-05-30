@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { webLlmService } from "@/utils/webLlmService";
+import { ttsService } from "@/utils/ttsService";
 
 export function SpeakHandler() {
   const { selectedNodes, clearNodes } = useIrisStore();
@@ -32,13 +33,11 @@ export function SpeakHandler() {
         const sentence = await webLlmService.generate(selectedNodes);
         setStatus("Speaking...");
         
-        const utterance = new SpeechSynthesisUtterance(sentence);
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setStatus("Model Ready");
-          clearNodes();
-        };
-        window.speechSynthesis.speak(utterance);
+        await ttsService.speak(sentence);
+        
+        setIsSpeaking(false);
+        setStatus("Model Ready");
+        clearNodes();
       } catch (e) {
         console.error(e);
         setIsSpeaking(false);
