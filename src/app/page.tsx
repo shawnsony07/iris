@@ -8,6 +8,8 @@ import { GridUI } from "@/components/GridUI";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { NodeBuilder } from "@/components/NodeBuilder";
 import { SpeakHandler } from "@/components/SpeakHandler";
+import { useWhisperMic } from "@/hooks/useWhisperMic";
+import { useState } from "react";
 
 // Intercept and demote non-fatal MediaPipe WASM stderr logging to prevent Next.js Dev Error Overlay from popping up
 if (typeof window !== "undefined") {
@@ -33,6 +35,10 @@ if (typeof window !== "undefined") {
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const { sttReady, sttDownloadProgress, liveCaption, sttError } = useIrisStore();
+  
+  useWhisperMic(mediaStream);
 
   useEffect(() => {
     let isActive = true;
@@ -52,9 +58,12 @@ export default function Home() {
           numFaces: 1
         });
 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
-        if (videoRef.current && isActive) {
-          videoRef.current.srcObject = stream;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true });
+        if (isActive) {
+          setMediaStream(stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
         }
       } catch (err) {
         console.error("Failed to init camera or mediapipe", err);
@@ -158,13 +167,38 @@ export default function Home() {
 
   return (
     <main className="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 text-white relative">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        onLoadedData={handleVideoLoad}
-        className="fixed bottom-4 right-4 w-64 h-auto rounded-xl shadow-2xl border-2 border-slate-700 z-50 pointer-events-none opacity-70 [transform:scaleX(-1)]"
-      />
+      <div className="fixed bottom-4 right-4 w-64 rounded-xl shadow-2xl border-2 border-slate-700 z-50 overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onLoadedData={handleVideoLoad}
+          className="w-full h-auto opacity-70 [transform:scaleX(-1)]"
+        />
+        {sttError && (
+          <div className="absolute inset-0 bg-red-900/90 flex flex-col items-center justify-center p-4 text-center">
+            <span className="text-white font-bold mb-2">WHISPER ERROR:</span>
+            <span className="text-white text-xs break-all">{sttError}</span>
+          </div>
+        )}
+        {!sttReady && !sttError && (
+          <div className="absolute bottom-0 left-0 w-full bg-slate-900/90 h-6 flex items-center justify-center">
+            <div 
+              className="absolute left-0 top-0 h-full bg-yellow-500 transition-all duration-300" 
+              style={{ width: `${sttDownloadProgress}%` }}
+            />
+            <span className="relative z-10 text-[10px] font-bold tracking-wider text-white drop-shadow-md">
+              DOWNLOADING WHISPER: {sttDownloadProgress}%
+            </span>
+          </div>
+        )}
+        {sttReady && liveCaption && !sttError && (
+          <div className="absolute bottom-0 left-0 w-full min-h-[20%] bg-black/80 flex items-center justify-center p-2 text-xs font-bold text-white text-center leading-tight">
+            {liveCaption}
+          </div>
+        )}
+      </div>
       
       <NodeBuilder />
       

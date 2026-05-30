@@ -1,27 +1,23 @@
 "use client";
 
 import { useIrisStore } from "@/store/useIrisStore";
-import { useAmbientMic } from "@/hooks/useAmbientMic";
+
 
 export function GridUI() {
-  const { selectedNodes, predictions, isPredicting, coreBlocks, activeTone, sleepMode, showMediaModal, isListening } = useIrisStore();
-  const { toggleMic, toastMessage } = useAmbientMic();
+  const { selectedNodes, predictions, isPredicting, coreBlocks, activeTone, sleepMode, showMediaModal, isTranscribing } = useIrisStore();
 
   const toneModifiers = ["Sarcastic", "Urgent", "Polite", "Joyful"];
 
   return (
     <>
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-red-600 text-white px-8 py-4 rounded-xl text-xl font-bold shadow-2xl z-[9999]">
-          {toastMessage}
-        </div>
-      )}
-      {isListening && (
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 bg-red-600 text-white px-12 py-2 rounded-b-2xl font-bold text-xl shadow-lg z-[9999] flex items-center gap-4 animate-pulse">
+
+      {isTranscribing && (
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 bg-yellow-600 text-white px-12 py-2 rounded-b-2xl font-bold text-xl shadow-lg z-[9999] flex items-center gap-4 animate-pulse">
           <div className="w-4 h-4 bg-white rounded-full animate-bounce"></div>
-          Listening...
+          Transcribing...
         </div>
       )}
+
       {sleepMode && (
         <div className="fixed inset-0 bg-black/95 z-[9000] flex">
           <div
@@ -59,15 +55,7 @@ export function GridUI() {
         {/* Left Tone Column */}
         <div className="w-48 flex flex-col gap-[4vh] p-8 pr-0 border-r-4 border-slate-800">
           <div className="text-slate-500 font-bold text-center tracking-widest text-sm uppercase">Tones</div>
-          <div
-            id="mic-toggle-block"
-            className={`h-full w-full rounded-xl flex items-center justify-center font-bold text-xl border-4 transition-all ${
-              isListening ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-slate-800 text-slate-400 border-slate-700'
-            }`}
-            onClick={toggleMic}
-          >
-            [Mic: {isListening ? 'ON' : 'OFF'}]
-          </div>
+
           {toneModifiers.map((tone) => (
             <div
               key={tone}

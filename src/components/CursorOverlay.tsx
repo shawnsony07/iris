@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { webLlmService } from "@/utils/webLlmService";
-import { useAmbientMic } from "@/hooks/useAmbientMic";
+
 import { ttsService } from "@/utils/ttsService";
 
 export function CursorOverlay() {
   const { cursor, addNode, clearNodes, sleepMode, setSleepMode, incrementFrequency, setActiveTone } = useIrisStore();
-  const { toggleMic } = useAmbientMic();
   const [dwellProgress, setDwellProgress] = useState(0);
   
   const currentHoverRef = useRef<Element | null>(null);
@@ -27,7 +26,6 @@ export function CursorOverlay() {
              el.id === "close-modal" ||
              el.id === "speak-block" || 
              el.id === "clear-block" ||
-             el.id === "mic-toggle-block" ||
              el.hasAttribute("data-block-id");
     }) || null;
 
@@ -69,8 +67,6 @@ export function CursorOverlay() {
         if (dwellTime >= requiredDwell) {
           if (target.id === "speak-block") {
             target.dispatchEvent(new CustomEvent('dwell-click'));
-          } else if (target.id === "mic-toggle-block") {
-            toggleMic();
           } else if (target.id === "clear-block") {
             clearNodes();
           } else if (target.id === "wake-block") {

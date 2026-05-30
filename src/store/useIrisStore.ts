@@ -12,6 +12,11 @@ interface IrisState {
   activeTone: string | null;
   ambientContext: string;
   isListening: boolean;
+  isTranscribing: boolean;
+  sttDownloadProgress: number;
+  sttReady: boolean;
+  liveCaption: string;
+  sttError: string | null;
   setCursor: (x: number, y: number) => void;
   addNode: (node: string) => void;
   clearNodes: () => void;
@@ -24,6 +29,11 @@ interface IrisState {
   setActiveTone: (tone: string | null) => void;
   setAmbientContext: (context: string) => void;
   setIsListening: (status: boolean) => void;
+  setIsTranscribing: (status: boolean) => void;
+  setSttDownloadProgress: (progress: number) => void;
+  setSttReady: (status: boolean) => void;
+  setLiveCaption: (caption: string) => void;
+  setSttError: (error: string | null) => void;
 }
 
 const defaultBlocks = ["Physical", "Social", "Pain", "Adjust", "Yes", "No", "Hungry", "Thirsty", "Entertainment", "Music", "EMERGENCY", "Sleep Mode", "Re-Optimize Layout"];
@@ -40,6 +50,11 @@ export const useIrisStore = create<IrisState>((set) => ({
   activeTone: null,
   ambientContext: "",
   isListening: false,
+  isTranscribing: false,
+  sttDownloadProgress: 0,
+  sttReady: false,
+  liveCaption: "",
+  sttError: null,
   setCursor: (x, y) => set({ cursor: { x, y } }),
   addNode: (node) => set((state) => ({ selectedNodes: [...state.selectedNodes, node] })),
   clearNodes: () => set({ selectedNodes: [], predictions: [] }),
@@ -73,4 +88,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   setActiveTone: (tone) => set({ activeTone: tone }),
   setAmbientContext: (context) => set({ ambientContext: context }),
   setIsListening: (status) => set({ isListening: status }),
+  setIsTranscribing: (status) => set({ isTranscribing: status }),
+  setSttDownloadProgress: (progress) => set({ sttDownloadProgress: progress }),
+  setSttReady: (status) => set({ sttReady: status }),
+  setLiveCaption: (caption) => set({ liveCaption: caption }),
+  setSttError: (error) => set({ sttError: error }),
 }));
