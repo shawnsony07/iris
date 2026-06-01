@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { webLlmService } from "@/utils/webLlmService";
 import { ttsService } from "@/utils/ttsService";
+import { GazeButton } from "./GazeButton";
+import { Volume2 } from "lucide-react";
 
 export function SpeakHandler() {
   const { selectedNodes, clearNodes } = useIrisStore();
-  const [status, setStatus] = useState("Loading Model...");
+  const [status, setStatus] = useState("Loading Model…");
   const [isReady, setIsReady] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -18,7 +20,7 @@ export function SpeakHandler() {
       }
     }).then(() => {
       setIsReady(true);
-      setStatus("Model Ready");
+      setStatus("Ready");
     });
   }, []);
 
@@ -28,20 +30,18 @@ export function SpeakHandler() {
       if (!isReady || selectedNodes.length === 0 || isSpeaking) return;
       
       setIsSpeaking(true);
-      setStatus("Generating...");
+      setStatus("Generating…");
       try {
         const sentence = await webLlmService.generate(selectedNodes);
-        setStatus("Speaking...");
-        
+        setStatus("Speaking…");
         await ttsService.speak(sentence);
-        
         setIsSpeaking(false);
-        setStatus("Model Ready");
+        setStatus("Ready");
         clearNodes();
       } catch (e) {
         console.error(e);
         setIsSpeaking(false);
-        setStatus("Model Ready");
+        setStatus("Ready");
       }
     };
 
@@ -49,20 +49,20 @@ export function SpeakHandler() {
     return () => el?.removeEventListener('dwell-click', handleDwell);
   }, [selectedNodes, isReady, isSpeaking, clearNodes]);
 
+  const canSpeak = isReady && selectedNodes.length > 0 && !isSpeaking;
+
   return (
-    <div className="flex flex-col gap-4 p-4 w-full h-full justify-center">
-      <div 
+    <div className="flex flex-col gap-2 w-full h-full justify-center">
+      <GazeButton
         id="speak-block"
-        data-disabled={!isReady || selectedNodes.length === 0 || isSpeaking}
-        className={`w-full py-16 flex items-center justify-center text-4xl font-black text-white rounded-2xl shadow-2xl border-8 transition-colors ${
-          (isReady && selectedNodes.length > 0 && !isSpeaking) 
-            ? 'bg-green-600 border-green-400' 
-            : 'bg-gray-600 border-gray-400 opacity-50'
-        }`}
-      >
-        SPEAK
-      </div>
-      <div className="text-sm text-slate-400 text-center font-mono break-all line-clamp-2 h-10">
+        data-disabled={!canSpeak}
+        customDwellTime={800}
+        icon={Volume2}
+        className={`w-full h-full ${canSpeak ? "!border-[var(--iris-success)]/40" : ""}`}
+        accentColor={canSpeak ? "var(--iris-success)" : "var(--iris-text-muted)"}
+        text="SPEAK"
+      />
+      <div className="text-[11px] text-[var(--iris-text-muted)] text-center font-[var(--font-geist-mono)] tracking-wide truncate h-5 shrink-0 leading-5">
         {status}
       </div>
     </div>

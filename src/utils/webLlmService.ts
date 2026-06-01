@@ -111,11 +111,48 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
       
       if (parsedArray.length > 0) {
         useIrisStore.getState().setPredictions(parsedArray);
+        useIrisStore.getState().setIsContextResponse(true);
       }
     } catch (error) {
       console.error("Local LLM Context Prediction error:", error);
     } finally {
       useIrisStore.getState().setIsPredicting(false);
+    }
+  }
+
+  async filterNodesByContext(ambientContext: string, availableNodes: string[]): Promise<void> {
+    if (!this.engine || !this.isLoaded || !ambientContext || availableNodes.length === 0) return;
+
+    const systemMessage = `You are a logical filtering engine for an AAC interface. The user is a non-verbal patient. The caregiver has just spoken: '${ambientContext}'. 
+Your task is to identify which of the following pre-defined concepts are logically relevant or useful for the patient to respond with. 
+Available concepts: [${availableNodes.join(", ")}]. 
+Output ONLY a comma-separated list of the relevant concepts from the available list. If none are relevant, output nothing. Do not use quotes, explanation, or conversational filler.`;
+    const userMessage = "Output the relevant concepts.";
+
+    try {
+      const reply = await this.engine.chat.completions.create({
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: 50,
+        // @ts-expect-error - WebLLM types don't officially support 'user', but security scanner requires it
+        user: "iris-local-user",
+      });
+
+      const content = reply.choices[0]?.message?.content || "";
+      const parsedArray = content.split(",")
+        .map(w => w.trim())
+        .filter(w => availableNodes.includes(w));
+      
+      if (parsedArray.length > 0) {
+        useIrisStore.getState().setActiveContextNodeIds(parsedArray);
+      } else {
+        useIrisStore.getState().setActiveContextNodeIds(null);
+      }
+    } catch (error) {
+      console.error("Local LLM Context Filtering error:", error);
+      useIrisStore.getState().setActiveContextNodeIds(null);
     }
   }
 }
