@@ -22,7 +22,15 @@ export function GazeCursor() {
     const update = () => {
       // ── Position (direct DOM, 60 fps, zero React) ──────────────────────────
       if (wrapRef.current) {
-        const { x, y } = gazePositionRef.current;
+        let { x, y } = gazePositionRef.current;
+        const snapTarget = hoverStateRef.current.snapTarget;
+        
+        if (snapTarget) {
+          // Snap visually to the target (the button's center)
+          x = snapTarget.x;
+          y = snapTarget.y;
+        }
+
         wrapRef.current.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
       }
 

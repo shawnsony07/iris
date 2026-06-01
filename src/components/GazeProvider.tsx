@@ -40,7 +40,7 @@ export function GazeProvider({ children }: { children: ReactNode }) {
 
   const gazePositionRef = useRef<GazePosition>({ x: 0, y: 0 }) as MutableRefObject<GazePosition>;
   const rawIrisRef      = useRef<GazePosition>({ x: 0.5, y: 0.5 }) as MutableRefObject<GazePosition>;
-  const hoverStateRef   = useRef({ isHovering: false, dwellPct: 0 });
+  const hoverStateRef   = useRef({ isHovering: false, dwellPct: 0, snapTarget: undefined as GazePosition | undefined });
 
   // ── Reactive state (discrete events only — blinks, face loss, status) ──────
   const [rs, setRS] = useState<ReactiveState>({
@@ -98,26 +98,28 @@ export function GazeProvider({ children }: { children: ReactNode }) {
         const isBlinking = blinkDetRef.current?.update(lm) ?? false;
         void isBlinking; // used inside BlinkDetector callback only
 
-        // Gaze
-        const raw = estimateRawGaze(lm);
-        if (raw) {
-          rawIrisRef.current = raw;
+        // Gaze - Freeze coordinates while blinking to prevent downward spike
+        if (!isBlinking) {
+          const raw = estimateRawGaze(lm);
+          if (raw) {
+            rawIrisRef.current = raw;
 
-          // Apply calibration (if ready) or direct screen mapping
-          const calibrated = calibrationRef.current.apply(raw.x, raw.y);
-          const screenPos  = calibrated ?? {
-            x: raw.x * window.innerWidth,
-            y: raw.y * window.innerHeight,
-          };
+            // Apply calibration (if ready) or direct screen mapping
+            const calibrated = calibrationRef.current.apply(raw.x, raw.y);
+            const screenPos  = calibrated ?? {
+              x: raw.x * window.innerWidth,
+              y: raw.y * window.innerHeight,
+            };
 
-          // EMA smooth
-          const smoothed = smootherRef.current.update(screenPos.x, screenPos.y);
+            // EMA smooth
+            const smoothed = smootherRef.current.update(screenPos.x, screenPos.y);
 
-          // Clamp to viewport
-          gazePositionRef.current = {
-            x: Math.max(0, Math.min(window.innerWidth,  smoothed.x)),
-            y: Math.max(0, Math.min(window.innerHeight, smoothed.y)),
-          };
+            // Clamp to viewport
+            gazePositionRef.current = {
+              x: Math.max(0, Math.min(window.innerWidth,  smoothed.x)),
+              y: Math.max(0, Math.min(window.innerHeight, smoothed.y)),
+            };
+          }
         }
 
         setRS(prev =>

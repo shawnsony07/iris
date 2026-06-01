@@ -52,7 +52,12 @@ export function GazeButton({
       if (btnRef.current && !dataDisabled) {
         const { x, y } = gazePositionRef.current;
         const r   = btnRef.current.getBoundingClientRect();
-        const hit = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        
+        // Add a 60px margin (hysteresis) to the hitbox if we are already hovering this button
+        // This makes the button "sticky" and prevents accidental un-hovering during slight eye jitters
+        const margin = wasHoveredRef.current ? 60 : 0;
+        const hit = x >= r.left - margin && x <= r.right + margin && y >= r.top - margin && y <= r.bottom + margin;
+        
         const was = wasHoveredRef.current;
 
         if (hit !== was) {
@@ -61,24 +66,27 @@ export function GazeButton({
 
           if (hit) {
             dwellStartRef.current = performance.now();
-            hoverStateRef.current = { isHovering: true, dwellPct: 0 };
+            hoverStateRef.current = { isHovering: true, dwellPct: 0, snapTarget: undefined };
           } else {
             // Clear ring
             if (dwellRingRef.current) {
               dwellRingRef.current.style.strokeDashoffset = String(CIRC);
             }
             if (hoverStateRef.current.isHovering) {
-              hoverStateRef.current = { isHovering: false, dwellPct: 0 };
+              hoverStateRef.current = { isHovering: false, dwellPct: 0, snapTarget: undefined };
             }
           }
         }
 
-        // While hovering: update dwell ring directly
+        // While hovering: update dwell ring directly and set snap target
         if (hit && dwellRingRef.current) {
           const pct = Math.min(1, (performance.now() - dwellStartRef.current) / DWELL_VISUAL_MS);
           const offset = CIRC * (1 - pct);
           dwellRingRef.current.style.strokeDashoffset = String(offset);
-          hoverStateRef.current = { isHovering: true, dwellPct: pct };
+          
+          // Once the dwell starts, provide the center of the button to the cursor to snap to
+          const snapTarget = pct > 0.05 ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
+          hoverStateRef.current = { isHovering: true, dwellPct: pct, snapTarget };
         }
       }
 
@@ -89,7 +97,7 @@ export function GazeButton({
     return () => {
       cancelAnimationFrame(rafRef.current);
       if (wasHoveredRef.current && hoverStateRef.current.isHovering) {
-        hoverStateRef.current = { isHovering: false, dwellPct: 0 };
+        hoverStateRef.current = { isHovering: false, dwellPct: 0, snapTarget: undefined };
       }
     };
   }, [gazePositionRef, hoverStateRef, dataDisabled]);

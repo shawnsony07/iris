@@ -25,7 +25,7 @@ export interface GazeState {
   gazePositionRef: MutableRefObject<GazePosition>;
   rawIrisRef: MutableRefObject<GazePosition>;
   // Shared hover state: GazeButton writes, GazeCursor reads — zero React renders
-  hoverStateRef: MutableRefObject<{ isHovering: boolean; dwellPct: number }>;
+  hoverStateRef: MutableRefObject<{ isHovering: boolean; dwellPct: number; snapTarget?: GazePosition }>;
 
   // ── Methods ──
   startCalibration: () => void;
@@ -50,7 +50,7 @@ export const GazeContext = createContext<GazeState>({
   stream: null,
   gazePositionRef:  dummyRef   as MutableRefObject<GazePosition>,
   rawIrisRef:       dummyRef   as MutableRefObject<GazePosition>,
-  hoverStateRef:    dummyHover as MutableRefObject<{ isHovering: boolean; dwellPct: number }>,
+  hoverStateRef:    dummyHover as MutableRefObject<{ isHovering: boolean; dwellPct: number; snapTarget?: GazePosition }>,
   startCalibration: noop,
   recordCalibrationPoint: noop,
   resetCalibration: noop,
