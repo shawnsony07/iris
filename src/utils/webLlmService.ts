@@ -44,15 +44,35 @@ class WebLlmService {
   async generate(keywords: string[]): Promise<string> {
     if (!this.engine || !this.isLoaded) return "";
 
-    const activeTone = useIrisStore.getState().activeTone;
-    const toneInstruction = activeTone ? `\nWrite the final sentence using a ${activeTone} tone.` : "";
+    // Hardcode bypass for extremely basic single-word affirmations/negations
+    // to prevent the 1B model from hallucinating unnecessary context.
+    if (keywords.length === 1) {
+      const word = keywords[0].toLowerCase();
+      if (word === "yes") return "Yes.";
+      if (word === "no") return "No.";
+    }
 
-    const systemMessage = `You are the voice for a non-verbal individual using an AAC (Augmentative and Alternative Communication) device. 
-Your task is to take a list of selected keywords and formulate a natural, polite, and clear sentence spoken in the first person ("I").
-The keywords represent basic needs, physical states, or desires. 
-CRITICAL: If keywords seem unrelated (e.g., "Pain" and "Social"), do NOT combine them metaphorically (like "social pain"). Instead, treat them as separate literal thoughts or needs and combine them logically (e.g., "I am in pain, and I would also like some social interaction.").
-Output ONLY the final sentence. No quotes, no conversational filler, and no additional commentary.${toneInstruction}`;
-    const userPrompt = `Keywords: [${keywords.join(", ")}]`;
+    const systemMessage = `Your task is to translate short keywords into a single, natural, first-person spoken sentence ("I").
+You are speaking as a human who needs assistance with daily tasks.
+RULES:
+1. Words like "Toilet", "Thirsty", or "Physical" mean you need help (e.g., "I need to go to the toilet", "I need some water", "Please adjust my position").
+2. "Social" means you want to socialize, talk, or have company.
+3. If the keyword is a simple greeting or answer like "Yes" or "No", just output that word directly. Do not invent extra requests.
+4. Output ONLY the final spoken sentence. No quotes, no intro text, no conversational filler.`;
+
+    const activeTone = useIrisStore.getState().activeTone;
+    const toneInstruction = activeTone ? `Please apply a ${activeTone.toUpperCase()} tone to the sentence.` : "";
+
+    const userPrompt = `Keywords: [${keywords.join(", ")}]
+    
+${toneInstruction}
+Write the single sentence now:`;
+
+    let temperature = 0.4; // Default predictable response
+    if (activeTone === "Sarcastic") temperature = 0.8;
+    else if (activeTone === "Joyful") temperature = 0.7;
+    else if (activeTone === "Polite") temperature = 0.5;
+    else if (activeTone === "Urgent") temperature = 0.3;
 
     try {
       const reply = await this.enqueue(() => this.engine!.chat.completions.create({
@@ -61,6 +81,7 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
           { role: "user", content: userPrompt }
         ],
         max_tokens: 256, // Mitigate resource exhaustion by enforcing a strict token limit
+        temperature,
       }));
       
       const choice = reply.choices[0];
@@ -95,7 +116,10 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
       }));
 
       const content = reply.choices[0]?.message?.content || "";
-      const parsedArray = content.split(",").map(w => w.trim()).filter(w => w.length > 0).slice(0, 3);
+      const parsedArray = content.split(/,|\n/)
+        .map(w => w.replace(/^\d+\.\s*/, "").replace(/["']/g, "").trim())
+        .filter(w => w.length > 0)
+        .slice(0, 3);
       
       useIrisStore.getState().setPredictions(parsedArray);
     } catch (error) {
@@ -129,9 +153,13 @@ Example output: Yes, No, I don't know`;
       let content = reply.choices[0]?.message?.content || "";
       // Strip common LLM conversational filler prefixes
       content = content.replace(/^.*?:\s*/, "");
-      content = content.replace(/["'\n\r]/g, "");
+      content = content.replace(/["']/g, "");
       
-      const parsedArray = content.split(",").map(w => w.trim()).filter(w => w.length > 0).slice(0, 3);
+      // Split by commas OR newlines, then clean up numbers (e.g. "1. Yes")
+      const parsedArray = content.split(/,|\n/)
+        .map(w => w.replace(/^\d+\.\s*/, "").trim())
+        .filter(w => w.length > 0)
+        .slice(0, 3);
       
       if (parsedArray.length > 0) {
         useIrisStore.getState().setPredictions(parsedArray);

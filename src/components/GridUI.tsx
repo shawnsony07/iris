@@ -3,7 +3,7 @@
 import { useIrisStore } from "@/store/useIrisStore";
 import { GazeButton } from "./GazeButton";
 import { SpeakHandler } from "./SpeakHandler";
-import { Hand, Smile, Activity, Check, X, Utensils, CupSoda, Tv, RefreshCcw, Moon, AlertTriangle, Settings, Music, Power, MessageCircle } from "lucide-react";
+import { Hand, Smile, Activity, Check, X, Utensils, CupSoda, Tv, RefreshCcw, Moon, AlertTriangle, Settings, Music, Power, MessageCircle, Bath } from "lucide-react";
 import { StatusBar } from "./StatusBar";
 
 /** Category config: icon + CSS custom property accent color */
@@ -15,18 +15,17 @@ const CATEGORY_MAP: Record<string, { icon: React.ComponentType<{ className?: str
   "No":                 { icon: X,          accent: "var(--cat-no)" },
   "Hungry":             { icon: Utensils,   accent: "var(--cat-hungry)" },
   "Thirsty":            { icon: CupSoda,    accent: "var(--cat-thirsty)" },
+  "Toilet":             { icon: Bath,       accent: "var(--cat-toilet)" },
   "Entertainment":      { icon: Tv,         accent: "var(--cat-entertainment)" },
   "Sleep Mode":         { icon: Moon,       accent: "var(--cat-sleep)" },
   "Re-Optimize Layout": { icon: RefreshCcw, accent: "var(--cat-reoptimize)" },
   "Music":              { icon: Music,      accent: "var(--cat-music)" },
 };
 
-/** Rotating accent colors for prediction tiles */
 const PREDICTION_ACCENTS = [
-  "var(--cat-physical)",
-  "var(--cat-social)",
-  "var(--cat-pain)",
-  "var(--cat-entertainment)",
+  "var(--pred-speech)",
+  "var(--pred-error)",
+  "var(--pred-retry)",
 ];
 
 export function GridUI() {
@@ -43,27 +42,27 @@ export function GridUI() {
     <>
       {/* ── Floating Toolbar ── */}
       <div className="fixed top-4 left-4 z-[9999] flex gap-2">
-        <button
-          onClick={toggleDebugMode}
-          className="iris-glass rounded-lg px-3 py-1.5 text-[11px] font-medium tracking-wider text-[var(--iris-text-muted)] hover:text-[var(--iris-text)] transition-colors cursor-pointer"
-        >
-          DEBUG {isDebugMode ? "ON" : "OFF"}
-        </button>
-        <button
-          onClick={() => useIrisStore.getState().triggerRecenter()}
-          className="iris-glass rounded-lg px-3 py-1.5 text-[11px] font-medium tracking-wider text-[var(--iris-accent)] hover:bg-[var(--iris-surface-hover)] transition-colors cursor-pointer"
-        >
-          RE-CENTER (C)
-        </button>
+          <button
+            onClick={toggleDebugMode}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold tracking-wider border-2 border-black bg-white text-black shadow-[0_3px_0_black] active:translate-y-[3px] active:shadow-none transition-all"
+          >
+            DEBUG {isDebugMode ? "ON" : "OFF"}
+          </button>
+          <button
+            onClick={() => useIrisStore.getState().triggerRecenter()}
+            className="px-4 py-1.5 rounded-lg text-[11px] font-bold tracking-wider border-2 border-black bg-white text-black shadow-[0_3px_0_black] active:translate-y-[3px] active:shadow-none transition-all"
+          >
+            RE-CENTER (C)
+          </button>
         <div className="mx-2 w-px h-6 bg-[var(--iris-border)] opacity-50 self-center" />
         <StatusBar />
       </div>
 
       {/* ── Transcribing Banner ── */}
       {isTranscribing && (
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[9999] iris-glass-strong rounded-b-xl px-8 py-2 flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-[var(--iris-warning)] animate-[iris-pulse_1s_ease-in-out_infinite]" />
-          <span className="text-sm font-semibold tracking-wide text-[var(--iris-text)]">Transcribing…</span>
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[9999] bg-[#d97706] shadow-lg rounded-b-2xl px-10 py-2.5 flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-white animate-[iris-pulse_1s_ease-in-out_infinite]" />
+          <span className="text-sm font-bold tracking-wide text-white">Transcribing...</span>
         </div>
       )}
 
@@ -84,13 +83,13 @@ export function GridUI() {
       {/* ── Media Modal ── */}
       {showMediaModal && (
         <div className="fixed inset-0 bg-black/90 z-[8000] flex items-center justify-center p-12">
-          <div className="iris-glass-strong w-full h-full rounded-2xl overflow-hidden relative flex flex-col">
+          <div className="w-full h-full rounded-2xl overflow-hidden relative flex flex-col bg-white">
             <GazeButton
               id="close-modal"
               customDwellTime={800}
               icon={X}
-              className="absolute top-4 right-4 w-32 h-14 z-10"
-              accentColor="var(--iris-danger)"
+              className="absolute top-4 right-4 w-32 h-14 z-10 !bg-[var(--btn-red)] !border-black/20 text-white shadow-sm"
+              accentColor="rgba(0,0,0,0.1)"
               text="Close"
             />
             <iframe
@@ -108,15 +107,11 @@ export function GridUI() {
       {/* ── Centered Response Overlay (Full Screen) ── */}
       {isContextResponse && (
         <div className="fixed inset-0 bg-[#FDF1D0] z-[10000] flex items-center justify-center p-24">
-          <div className="absolute top-4 left-4 flex gap-2">
-            <div className="bg-[#4a6b63]/80 text-white rounded px-3 py-1.5 text-[11px] font-bold tracking-wider">[DEBUG MODE: OFF]</div>
-            <div className="bg-[#4a6b63]/80 text-white rounded px-3 py-1.5 text-[11px] font-bold tracking-wider">[RE-CENTER (C)]</div>
-          </div>
           <button
             onClick={() => useIrisStore.getState().clearNodes()}
-            className="absolute top-4 right-4 bg-transparent border border-[#4a6b63]/30 text-[#4a6b63] font-bold rounded-lg px-6 py-2 hover:bg-[#4a6b63]/10 transition-colors"
+            className="absolute bottom-12 right-12 bg-transparent border border-[#4a6b63]/30 text-[#4a6b63] font-bold rounded-lg px-6 py-2 hover:bg-[#4a6b63]/10 transition-colors"
           >
-            Clear
+            Clear Response
           </button>
           <div className="w-full max-w-7xl h-[55vh] flex gap-10 items-stretch">
             {predictions.map((word, index) => (
@@ -150,8 +145,9 @@ export function GridUI() {
                 id={`tone-block-${tone}`}
                 customDwellTime={600}
                 icon={MessageCircle}
-                className={`h-full w-full ${activeTone === tone ? "!border-[var(--iris-accent)] !bg-[var(--iris-surface-raised)]" : ""}`}
-                accentColor={activeTone === tone ? "var(--iris-accent)" : "var(--iris-text-muted)"}
+                className="h-full w-full"
+                accentColor={activeTone === tone ? "#06b6d4" : "#ffffff"}
+                textColor="black"
                 text={tone}
               />
             ))}
@@ -162,9 +158,9 @@ export function GridUI() {
 
             <div className="h-[18vh] shrink-0 pb-2 mb-4 flex gap-3 w-full items-stretch">
               {generatedSpeech ? (
-                <div className="h-full w-full flex items-center justify-center iris-glass-strong rounded-[var(--radius-lg)] p-6 border border-[var(--iris-accent)]/30 shadow-[0_0_20px_var(--iris-accent)]/10">
-                  <p className="text-2xl font-[var(--font-geist-mono)] tracking-wide text-[var(--iris-text)] text-center w-full">
-                    "{generatedSpeech}"
+                <div className="h-full w-full flex items-center justify-center bg-white rounded-2xl p-6 border-4 border-black shadow-[0_8px_0_black]">
+                  <p className="text-3xl font-bold tracking-wide text-black text-center w-full">
+                    {generatedSpeech.replace(/^["']+|["']+$/g, '')}
                   </p>
                 </div>
               ) : isPredicting ? (
@@ -188,9 +184,8 @@ export function GridUI() {
               )}
             </div>
 
-            {/* Core Grid (bottom ~82%) */}
             <div className="flex-1 min-h-0 relative">
-              <div className="grid grid-cols-4 grid-rows-3 h-full w-full gap-3">
+              <div className="grid grid-cols-4 grid-rows-3 h-full w-full gap-8">
                 {coreBlocks.map((block, index) => {
                   if (!block) return <div key={`empty-${index}`} className="w-full h-full" />;
                   const isSelected = selectedNodes.includes(block);
@@ -224,15 +219,17 @@ export function GridUI() {
                 customDwellTime={600}
                 icon={Settings}
                 className="flex-1 h-full"
-                accentColor="var(--iris-text-muted)"
+                accentColor="#facc15" // bright yellow
+                textColor="black"
                 text="Adjust"
               />
               <GazeButton
                 id="grid-block-EMERGENCY"
                 customDwellTime={800}
                 icon={AlertTriangle}
-                className="flex-1 h-full !border-[var(--iris-danger)]/30"
-                accentColor="var(--iris-danger)"
+                className="flex-1 h-full"
+                accentColor="#ef4444" // bright red
+                textColor="black"
                 text="EMERGENCY"
               />
             </div>

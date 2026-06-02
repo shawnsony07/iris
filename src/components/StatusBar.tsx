@@ -24,7 +24,6 @@ export function StatusBar() {
   return (
     <div className="flex items-center gap-2">
       <Chip label={label} active={isReady} error={isErr} dot />
-      <Chip label={isWebGPU ? 'WebGPU' : 'CPU'} active={isWebGPU} dim={!isWebGPU} />
       <Chip label="FACE" active={isFaceDetected} dim={!isFaceDetected} dot />
       <Chip label={isCalibrated ? 'CALIBRATED' : 'UNCALIB.'} active={isCalibrated} dim={!isCalibrated} />
       {isTracking && <Chip label={`BLINK ×${blinkCount}`} dim />}

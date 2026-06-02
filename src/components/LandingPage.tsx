@@ -25,10 +25,10 @@ export function LandingPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-[1000] bg-[#030912] text-white flex flex-col items-center justify-center p-8 overflow-hidden"
+      className="absolute inset-0 z-[1000] bg-[var(--iris-bg)] text-[var(--iris-text)] flex flex-col items-center justify-center p-8 overflow-hidden"
     >
       {/* Background glow or subtle effect */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-900/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--iris-accent)]/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="z-10 max-w-2xl w-full flex flex-col items-center text-center space-y-12">
         <motion.div
@@ -38,17 +38,17 @@ export function LandingPage() {
           className="flex flex-col items-center"
         >
           {/* Logo Placeholder */}
-          <div className="mb-6 bg-white/5 p-4 rounded-full backdrop-blur-sm border border-white/10">
-            <Eye className="w-10 h-10 text-emerald-400" strokeWidth={1} />
+          <div className="mb-6 bg-[var(--iris-surface)] p-4 rounded-full shadow-[var(--shadow-elevated)] border border-[var(--iris-border)]">
+            <Eye className="w-10 h-10 text-[var(--iris-text)]" strokeWidth={2} />
           </div>
-          <h1 className={`${playfair.className} text-7xl md:text-8xl tracking-tight font-medium mb-6 text-emerald-50`}>
+          <h1 className={`${playfair.className} text-7xl md:text-8xl tracking-tight font-bold mb-6 text-[var(--iris-text)]`}>
             Iris
           </h1>
-          <h2 className="text-2xl md:text-3xl text-emerald-100 font-light mb-6 tracking-wide text-center">
-            Advanced eye-tracking. <span className="text-emerald-400 font-medium">Zero hardware required.</span>
+          <h2 className="text-2xl md:text-3xl text-slate-700 font-medium mb-6 tracking-wide text-center">
+            Advanced eye-tracking. <span className="text-slate-900 font-bold">Zero hardware required.</span>
           </h2>
-          <p className="text-lg md:text-xl text-slate-400 font-light max-w-2xl leading-relaxed text-center">
-            Browser-based communication OS that listens to the room, predicts your needs, and tracks your gaze with mathematical perfection. Giving paralyzed patients their autonomy back, one blink at a time.
+          <p className="text-lg md:text-xl text-slate-600 font-medium max-w-2xl leading-relaxed text-center">
+            Browser-based communication OS that listens to the room, predicts your needs, and tracks your gaze with mathematical perfection. <span className="font-bold text-slate-900">Giving paralyzed patients their autonomy back, one blink at a time.</span>
           </p>
         </motion.div>
 
@@ -59,7 +59,7 @@ export function LandingPage() {
         >
           <button
             onClick={handleStart}
-            className="group relative px-8 py-4 bg-emerald-500 text-emerald-950 rounded-full text-lg font-medium tracking-wide hover:scale-105 transition-transform duration-300 ease-out shadow-[0_0_40px_rgba(16,185,129,0.3)]"
+            className="group relative px-10 py-5 bg-[#5c3d2e] text-white rounded-full text-xl font-bold tracking-wide hover:scale-105 transition-transform duration-300 ease-out shadow-[0_10px_20px_rgba(92,61,46,0.3)]"
           >
             <span className="relative z-10 flex items-center gap-2">
               Start Experience

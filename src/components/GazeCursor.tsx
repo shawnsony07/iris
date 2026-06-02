@@ -31,7 +31,7 @@ export function GazeCursor() {
           y = snapTarget.y;
         }
 
-        wrapRef.current.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
+        wrapRef.current.style.transform = `translate(${x - 30}px, ${y - 30}px)`;
       }
 
       // ── Dwell ring (direct DOM) ────────────────────────────────────────────
@@ -55,10 +55,11 @@ export function GazeCursor() {
     return () => cancelAnimationFrame(raf);
   }, [gazePositionRef, hoverStateRef]);
 
-  const cyan  = '#00d4ff';
-  const green = '#00ff87';
-  const col   = isHovering ? green : cyan;
-  const dimCol = isHovering ? 'rgba(0,255,135,0.3)' : 'rgba(0,212,255,0.3)';
+  // A high-contrast cursor stands out on all vibrant backgrounds
+  const primaryColor = '#ff0000'; // Red progress ring and crosshair
+  const hoverColor = '#ff0000'; 
+  const col   = isHovering ? hoverColor : primaryColor;
+  const dimCol = '#000000'; // Solid black background ring
   const CIRC  = 2 * Math.PI * 16;
 
   return (
@@ -67,19 +68,20 @@ export function GazeCursor() {
       style={{
         position: 'fixed',
         top: 0, left: 0,
-        width: 40, height: 40,
+        width: 60, height: 60,
         pointerEvents: 'none',
         zIndex: 9999,
         willChange: 'transform',
+        filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))'
       }}
     >
-      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
         {/* Dwell progress ring (stroke-dashoffset controlled by DOM ref) */}
         <circle
           ref={ringRef}
           cx="20" cy="20" r="16"
           stroke={col}
-          strokeWidth={isHovering ? 2.5 : 1.5}
+          strokeWidth={isHovering ? 4 : 2.5}
           strokeDasharray={String(CIRC)}
           strokeDashoffset={String(CIRC)}
           strokeLinecap="round"
@@ -91,11 +93,11 @@ export function GazeCursor() {
         />
 
         {/* Static outer ring */}
-        <circle cx="20" cy="20" r="11" stroke={dimCol} strokeWidth="1"
+        <circle cx="20" cy="20" r="11" stroke={dimCol} strokeWidth="2.5"
           style={{ transition: 'stroke 0.2s ease' }} />
 
         {/* Crosshair lines */}
-        <g ref={dotsRef} stroke={col} strokeWidth="1"
+        <g ref={dotsRef} stroke={col} strokeWidth="2.5"
           style={{ transition: 'stroke 0.2s ease' }}>
           <line x1="20" y1="4"  x2="20" y2="11" />
           <line x1="20" y1="29" x2="20" y2="36" />
@@ -104,7 +106,7 @@ export function GazeCursor() {
         </g>
 
         {/* Centre dot */}
-        <circle cx="20" cy="20" r="2.5" fill={col}
+        <circle cx="20" cy="20" r="3.5" fill={col}
           style={{ transition: 'fill 0.2s ease' }} />
       </svg>
     </div>

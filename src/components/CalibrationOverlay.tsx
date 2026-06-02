@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGaze } from '@/lib/gazeContext';
 import { CALIBRATION_TARGETS } from '@/lib/calibration';
 import { useIrisStore } from '@/store/useIrisStore';
+import { GazeButton } from './GazeButton';
 
 const DWELL_BEFORE_READY_MS = 1200; // settle time before the target becomes "ready to blink"
 
@@ -74,23 +75,27 @@ export function CalibrationOverlay() {
         position: 'fixed', bottom: 24, left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 800,
-        display: 'flex', gap: 10,
+        display: 'flex', gap: 16,
       }}>
-        <button
-          className="ctrl-btn"
+        <GazeButton
+          id="recalibrate-btn"
+          customDwellTime={600}
+          className="px-6 py-3 text-lg !bg-white !border-[2px] !border-black shadow-[0_6px_0_black] rounded-2xl font-bold transition-transform hover:-translate-y-1 active:translate-y-1 active:shadow-[0_0px_0_black]"
+          accentColor="#5c3d2e"
+          textColor="black"
+          text={isCalibrated ? '↺ Recalibrate' : '◎ Calibrate'}
           onClick={startCalibration}
-          style={ctrlStyle('#00d4ff')}
-        >
-          {isCalibrated ? '↺ Recalibrate' : '◎ Calibrate'}
-        </button>
+        />
         {isCalibrated && (
-          <button
-            className="ctrl-btn"
+          <GazeButton
+            id="reset-calib-btn"
+            customDwellTime={600}
+            className="px-6 py-3 text-lg !bg-white !border-[2px] !border-black shadow-[0_6px_0_black] rounded-2xl font-bold transition-transform hover:-translate-y-1 active:translate-y-1 active:shadow-[0_0px_0_black]"
+            accentColor="#ef4444"
+            textColor="black"
+            text="✕ Reset"
             onClick={resetCalibration}
-            style={ctrlStyle('rgba(255,100,100,0.8)')}
-          >
-            ✕ Reset
-          </button>
+          />
         )}
       </div>
     );
@@ -104,7 +109,7 @@ export function CalibrationOverlay() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: 'rgba(3, 9, 18, 0.94)',
+      background: 'var(--iris-bg)',
       zIndex: 900,
       cursor: 'none',
     }}>
@@ -115,10 +120,10 @@ export function CalibrationOverlay() {
         textAlign: 'center',
         pointerEvents: 'none',
       }}>
-        <p style={{ color: '#4a7d9a', fontSize: 13, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+        <p style={{ color: 'var(--iris-text-muted)', fontSize: 13, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', fontWeight: 'bold' }}>
           CALIBRATION · POINT {calibrationStep + 1} / {total}
         </p>
-        <p style={{ color: '#e0f4ff', fontSize: 18, marginTop: 8 }}>
+        <p style={{ color: 'var(--iris-text)', fontSize: 18, marginTop: 8, fontWeight: 'bold' }}>
           {ready ? 'Blink to confirm' : 'Look at the target…'}
         </p>
       </div>
@@ -133,13 +138,14 @@ export function CalibrationOverlay() {
           <div
             key={i}
             style={{
-              width: 8, height: 8, borderRadius: '50%',
+              width: 10, height: 10, borderRadius: '50%',
               background: i < calibrationStep
-                ? '#00ff87'
+                ? '#000000' // Solid black for completed
                 : i === calibrationStep
-                ? '#00d4ff'
-                : 'rgba(255,255,255,0.15)',
-              transition: 'background 0.3s',
+                ? '#5c3d2e' // Coffee brown for current
+                : 'rgba(0,0,0,0.15)', // Dark transparent for upcoming
+              border: i === calibrationStep ? '2px solid #000' : 'none',
+              transition: 'all 0.3s',
             }}
           />
         ))}
@@ -160,25 +166,27 @@ export function CalibrationOverlay() {
           position: 'absolute',
           inset: -20,
           borderRadius: '50%',
-          border: `1px solid rgba(0, 212, 255, ${ready ? 0.4 : 0.15})`,
+          border: `3px solid ${ready ? '#000' : 'rgba(0,0,0,0.2)'}`,
+          opacity: ready ? 0.8 : 0.4,
           animation: ready ? 'calPulse 1.2s ease-in-out infinite' : 'none',
         }} />
         {/* Main circle */}
         <div style={{
-          width: 28, height: 28,
+          width: 32, height: 32,
           borderRadius: '50%',
-          border: `2px solid ${pulse ? '#00ff87' : ready ? '#00d4ff' : 'rgba(0,212,255,0.5)'}`,
+          border: `3px solid ${pulse ? '#10b981' : ready ? '#000' : 'rgba(0,0,0,0.3)'}`,
           background: pulse
-            ? 'rgba(0,255,135,0.2)'
+            ? '#10b981'
             : ready
-            ? 'rgba(0,212,255,0.08)'
-            : 'transparent',
+            ? '#000'
+            : 'rgba(0,0,0,0.05)',
           transition: 'border-color 0.2s, background 0.2s',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 16px rgba(0,0,0,0.3)'
         }}>
           <div style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: pulse ? '#00ff87' : ready ? '#00d4ff' : 'rgba(0,212,255,0.4)',
+            width: 10, height: 10, borderRadius: '50%',
+            background: pulse ? '#fff' : ready ? '#fff' : 'rgba(0,0,0,0.4)',
           }} />
         </div>
       </div>
@@ -188,15 +196,17 @@ export function CalibrationOverlay() {
 
 function ctrlStyle(color: string): React.CSSProperties {
   return {
-    background: 'rgba(8, 18, 32, 0.95)',
-    border: `1px solid ${color}`,
+    background: 'var(--iris-surface)',
+    border: `1px solid var(--iris-border)`,
     color,
     padding: '8px 18px',
     borderRadius: 8,
     fontSize: 12,
+    fontWeight: 'bold',
     fontFamily: 'var(--font-mono)',
     letterSpacing: '0.06em',
     cursor: 'none',
     outline: 'none',
+    boxShadow: 'var(--shadow-sm)'
   };
 }

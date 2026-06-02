@@ -94,6 +94,9 @@ export function useWhisperMic(stream: MediaStream | null) {
         // Guardrail 1: Warm-Up Skip (200ms)
         if (performance.now() - startTime < 200) return;
 
+        // Guardrail 2: Do not listen to ourselves
+        if (useIrisStore.getState().isAppSpeaking) return;
+
         const inputData = e.inputBuffer.getChannelData(0);
         
         // Calculate RMS

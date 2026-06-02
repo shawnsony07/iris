@@ -1,3 +1,5 @@
+import { useIrisStore } from "@/store/useIrisStore";
+
 class TTSService {
   private worker: Worker | null = null;
   private audioCtx: AudioContext | null = null;
@@ -46,6 +48,7 @@ class TTSService {
         return;
       }
       this.ensureAudioContext();
+      useIrisStore.getState().setIsAppSpeaking(true);
       console.log(`[TTSService] Synthesizing: "${text}"`);
       this.speakPromises.push(resolve);
       this.worker.postMessage({ type: 'speak', text });
@@ -74,6 +77,9 @@ class TTSService {
   private resolveNextPromise() {
     const resolve = this.speakPromises.shift();
     if (resolve) resolve();
+    if (this.speakPromises.length === 0) {
+      useIrisStore.getState().setIsAppSpeaking(false);
+    }
   }
 }
 

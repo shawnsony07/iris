@@ -60,8 +60,9 @@ export function SpeakHandler() {
         data-disabled={!canSpeak}
         customDwellTime={800}
         icon={Volume2}
-        className={`w-full h-full ${canSpeak ? "!border-[var(--iris-success)]/40" : ""}`}
-        accentColor={canSpeak ? "var(--iris-success)" : "var(--iris-text-muted)"}
+        className="w-full h-full"
+        accentColor="#10b981" // bright green
+        textColor="black"
         text="SPEAK"
       />
       <div className="text-[11px] text-[var(--iris-text-muted)] text-center font-[var(--font-geist-mono)] tracking-wide truncate h-5 shrink-0 leading-5">

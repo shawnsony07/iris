@@ -18,6 +18,8 @@ interface GazeButtonProps {
   "data-disabled"?: boolean;
   colorClass?: string;
   accentColor?: string;
+  textColor?: string;
+  onClick?: () => void;
 }
 
 export function GazeButton({ 
@@ -30,6 +32,8 @@ export function GazeButton({
   "data-disabled": dataDisabled,
   colorClass = "",
   accentColor,
+  textColor,
+  onClick,
 }: GazeButtonProps) {
   const { isDebugMode } = useIrisStore();
   const { gazePositionRef, blinkCount, isCalibrating, hoverStateRef } = useGaze();
@@ -98,6 +102,11 @@ export function GazeButton({
   }, [gazePositionRef, hoverStateRef, dataDisabled]);
 
   const triggerAction = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+
     const state = useIrisStore.getState();
 
     if (id === "wake-block") {
@@ -117,7 +126,7 @@ export function GazeButton({
         fetch('/api/twilio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: '+1234567890', message: 'Emergency alert triggered.' })
+          body: JSON.stringify({ message: 'Emergency alert triggered.' })
         }).catch(console.error);
         return;
       }
@@ -167,10 +176,18 @@ export function GazeButton({
   };
 
   const accentStyle: React.CSSProperties = {};
-  if (accentColor && !dataDisabled) {
-    accentStyle.borderLeftColor = accentColor;
-    accentStyle.borderLeftWidth = '4px';
+  if (dataDisabled) {
+    accentStyle.backgroundColor = '#e5e7eb'; // light grey
+    accentStyle.boxShadow = `0 6px 0px black`;
+    accentStyle.color = '#9ca3af';
+    accentStyle.border = '3px solid black';
+  } else if (accentColor) {
+    accentStyle.backgroundColor = accentColor;
+    accentStyle.boxShadow = `0 6px 0px black`;
+    accentStyle.border = '3px solid black';
   }
+
+  const effectiveTextColor = dataDisabled ? 'black' : (textColor || 'black');
 
   return (
     <div
@@ -183,17 +200,24 @@ export function GazeButton({
       className={`gaze-tile ${className}`}
       style={{
         ...accentStyle,
-        transform: justSelected ? 'scale(0.97)' : 'scale(1)',
-        transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.12s ease',
+        borderRadius: '24px',
+        transform: justSelected ? 'translateY(6px)' : 'translateY(0px)',
+        transition: 'background 0.1s ease, box-shadow 0.1s ease, transform 0.1s ease',
+        boxShadow: justSelected 
+          ? `0 0px 0px black` 
+          : accentStyle.boxShadow,
       }}
     >
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-2 p-3">
         {Icon && (
-          <span style={accentColor ? { color: accentColor } : undefined}>
+          <span style={{ color: effectiveTextColor }}>
             <Icon className="w-7 h-7 md:w-8 md:h-8 shrink-0 opacity-85" />
           </span>
         )}
-        <span className="font-semibold text-sm md:text-base lg:text-lg tracking-wide w-full text-center break-words whitespace-normal leading-snug line-clamp-2 text-[var(--iris-text)]">
+        <span 
+          className="font-bold text-sm md:text-base lg:text-lg tracking-wide w-full text-center break-words whitespace-normal leading-snug line-clamp-2"
+          style={{ color: effectiveTextColor }}
+        >
           {text}
         </span>
       </div>
@@ -201,8 +225,8 @@ export function GazeButton({
       {justSelected && (
         <div style={{
           position: 'absolute', inset: 0,
-          borderRadius: 12,
-          background: 'rgba(0, 255, 135, 0.14)',
+          borderRadius: 24,
+          background: 'rgba(255, 255, 255, 0.2)',
           animation: 'flash 0.5s ease-out forwards',
           pointerEvents: 'none',
         }} />

@@ -6,42 +6,40 @@
 
 :root {
   /* ── Surfaces ── */
-  --iris-bg:             hsl(220 20% 8%);
-  --iris-surface:        hsl(220 16% 14%);
-  --iris-surface-raised: hsl(220 16% 17%);
-  --iris-surface-hover:  hsl(220 16% 20%);
-
-  /* ── Borders ── */
-  --iris-border:         hsl(220 12% 22%);
-  --iris-border-subtle:  hsl(220 10% 18%);
-  --iris-border-active:  hsl(175 70% 50%);
+  --iris-bg:             #F6E7C4;
+  --iris-surface:        #ffffff;
+  --iris-surface-raised: #f3f4f6;
+  --iris-surface-hover:  #e5e7eb;
 
   /* ── Text ── */
-  --iris-text:           hsl(220 10% 90%);
-  --iris-text-secondary: hsl(220 8% 65%);
-  --iris-text-muted:     hsl(220 6% 45%);
+  --iris-text:           #111827;
+  --iris-text-secondary: #4b5563;
+  --iris-text-muted:     #9ca3af;
 
-  /* ── Accents ── */
-  --iris-accent:         hsl(175 70% 50%);
-  --iris-accent-glow:    hsl(175 80% 55%);
-  --iris-danger:         hsl(0 72% 55%);
-  --iris-danger-muted:   hsl(0 50% 45%);
-  --iris-success:        hsl(145 60% 45%);
-  --iris-success-muted:  hsl(145 45% 35%);
-  --iris-warning:        hsl(40 90% 55%);
+  /* ── Category Colors (Exact from Screenshot) ── */
+  --cat-physical:        #F69131;
+  --cat-social:          #01CEAF;
+  --cat-pain:            #FE2559;
+  --cat-yes:             #FECD1B;
+  --cat-no:              #EF2331;
+  --cat-hungry:          #FB9E34;
+  --cat-thirsty:         #15ADF4;
+  --cat-toilet:          #85d21c; 
+  --cat-entertainment:   #D211FE; 
+  --cat-music:           #FF49B5;
+  --cat-sleep:           #7879FF;
+  --cat-reoptimize:      #01CFA1;
 
-  /* ── Category Accents (left-border + icon tint) ── */
-  --cat-physical:        hsl(25 70% 60%);
-  --cat-social:          hsl(175 55% 50%);
-  --cat-pain:            hsl(0 65% 55%);
-  --cat-yes:             hsl(145 55% 50%);
-  --cat-no:              hsl(0 60% 50%);
-  --cat-hungry:          hsl(30 75% 55%);
-  --cat-thirsty:         hsl(200 70% 55%);
-  --cat-entertainment:   hsl(280 55% 60%);
-  --cat-music:           hsl(330 60% 60%);
-  --cat-sleep:           hsl(240 50% 55%);
-  --cat-reoptimize:      hsl(160 55% 45%);
+  /* ── Tone & Action Colors ── */
+  --btn-navy:            #26384C;
+  --btn-purple:          #9224FF;
+  --btn-grey:            #727977;
+  --btn-red:             #F11D25;
+
+  /* ── Prediction Colors ── */
+  --pred-speech:         #FFAD59;
+  --pred-error:          #07D7B1;
+  --pred-retry:          #FF4675;
 
   /* ── Radii ── */
   --radius-sm:  8px;
@@ -50,10 +48,10 @@
   --radius-xl:  28px;
 
   /* ── Shadows ── */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.2);
-  --shadow-elevated: 0 4px 16px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.3);
-  --shadow-glow-accent: 0 0 20px hsla(175, 70%, 50%, 0.35);
-  --shadow-glow-danger: 0 0 20px hsla(0, 72%, 55%, 0.35);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow-accent: 0 0 20px rgba(59, 130, 246, 0.4);
+  --shadow-glow-danger: 0 0 20px rgba(239, 68, 68, 0.4);
 }
 
 @theme inline {
@@ -65,7 +63,7 @@
 
 /* ── Base ── */
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {

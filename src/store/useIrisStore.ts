@@ -28,6 +28,7 @@ interface IrisState {
   isDebugMode: boolean;
   activeContextNodeIds: string[] | null;
   isContextResponse: boolean;
+  isAppSpeaking: boolean;
   isCalibrated: boolean;
   calibrationBounds: { xMin: number; xMax: number; yMin: number; yMax: number } | null;
   currentCalibrationStep: number;
@@ -67,10 +68,11 @@ interface IrisState {
   setGeneratedSpeech: (s: string | null) => void;
   setActiveContextNodeIds: (ids: string[] | null) => void;
   setIsContextResponse: (val: boolean) => void;
+  setIsAppSpeaking: (val: boolean) => void;
   executeAction: (targetId: string, targetElement?: Element) => void;
 }
 
-const defaultBlocks = ["Physical", "Social", "Pain", "Yes", "No", "Hungry", "Thirsty", "Entertainment", "Music", "Sleep Mode", "Re-Optimize Layout"];
+const defaultBlocks = ["Hungry", "Yes", "No", "Toilet", "Physical", "Social", "Pain", "Thirsty"];
 
 export const useIrisStore = create<IrisState>((set) => ({
   appStage: 'landing',
@@ -98,6 +100,7 @@ export const useIrisStore = create<IrisState>((set) => ({
   isDebugMode: true,
   activeContextNodeIds: null,
   isContextResponse: false,
+  isAppSpeaking: false,
   isCalibrated: false,
   calibrationBounds: null,
   currentCalibrationStep: -1,
@@ -158,6 +161,7 @@ export const useIrisStore = create<IrisState>((set) => ({
   setGeneratedSpeech: (s) => set({ generatedSpeech: s }),
   setActiveContextNodeIds: (ids) => set({ activeContextNodeIds: ids }),
   setIsContextResponse: (val) => set({ isContextResponse: val }),
+  setIsAppSpeaking: (val) => set({ isAppSpeaking: val }),
   executeAction: (targetId, targetElement) => set((state) => {
     if (targetId === "speak-block") {
       if (targetElement) {

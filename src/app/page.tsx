@@ -49,37 +49,43 @@ function AppContent() {
       
       {appStage === 'project' && (
         <>
-          {/* Video Preview — glass card */}
-          <div className="fixed bottom-4 right-4 w-56 rounded-xl z-50 overflow-hidden iris-glass" style={{ boxShadow: "var(--shadow-elevated)" }}>
+          {/* Video Preview — light theme card */}
+          <div className="fixed bottom-4 right-4 w-64 h-48 rounded-2xl z-50 overflow-hidden bg-[var(--iris-surface)]" style={{ boxShadow: "var(--shadow-elevated)" }}>
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-auto opacity-60 [transform:scaleX(-1)]"
+              className="w-full h-full object-cover opacity-90 [transform:scaleX(-1)]"
             />
             {sttError && (
               <div className="absolute inset-0 bg-[var(--iris-danger)]/90 flex flex-col items-center justify-center p-3 text-center">
                 <span className="text-white font-semibold text-xs mb-1">WHISPER ERROR</span>
-                <span className="text-white/80 text-[10px] leading-tight truncate w-full">{sttError}</span>
+                <span className="text-white/90 text-[10px] leading-tight truncate w-full">{sttError}</span>
               </div>
             )}
             {!sttReady && !sttError && (
-              <div className="absolute bottom-0 left-0 w-full h-5 bg-black/70 flex items-center justify-center">
+              <div className="absolute bottom-0 left-0 w-full h-6 bg-[var(--iris-surface-raised)]/90 flex items-center justify-center border-t border-[var(--iris-border)]">
                 <div
                   className="absolute left-0 top-0 h-full transition-all duration-300"
-                  style={{ width: `${sttDownloadProgress}%`, background: "var(--iris-accent)" }}
+                  style={{ width: `${sttDownloadProgress}%`, background: "var(--iris-accent)", opacity: 0.2 }}
                 />
-                <span className="relative z-10 text-[9px] font-medium tracking-wider text-[var(--iris-text-secondary)]">
+                <span className="relative z-10 text-[10px] font-bold tracking-widest text-[var(--iris-text-muted)]">
                   WHISPER {sttDownloadProgress}%
                 </span>
               </div>
             )}
             {sttReady && liveCaption && !sttError && (
-              <div className="absolute bottom-0 left-0 w-full min-h-[20%] iris-glass-strong flex items-center justify-center p-2">
-                <span className="text-sm font-semibold text-[var(--iris-accent)] text-center leading-snug tracking-wide">
+              <div className="absolute bottom-0 left-0 w-full min-h-[20%] bg-[var(--iris-surface)]/90 flex items-center justify-center p-2 border-t border-[var(--iris-border)]">
+                <span className="text-sm font-bold text-[var(--iris-accent)] text-center leading-snug tracking-wide">
                   {liveCaption}
                 </span>
+              </div>
+            )}
+            {/* Blank Audio Fallback Placeholder text */}
+            {sttReady && !liveCaption && !sttError && (
+              <div className="absolute bottom-0 left-0 w-full h-6 bg-[var(--iris-surface-hover)]/90 flex items-center justify-center border-t border-[var(--iris-border)]">
+                <span className="text-[var(--iris-text-muted)] font-bold text-[10px] tracking-widest">[BLANK_AUDIO]</span>
               </div>
             )}
           </div>
