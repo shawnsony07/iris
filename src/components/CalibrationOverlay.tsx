@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGaze } from '@/lib/gazeContext';
 import { CALIBRATION_TARGETS } from '@/lib/calibration';
+import { useIrisStore } from '@/store/useIrisStore';
 
 const DWELL_BEFORE_READY_MS = 1200; // settle time before the target becomes "ready to blink"
 
@@ -15,7 +16,11 @@ export function CalibrationOverlay() {
     startCalibration,
     resetCalibration,
     isCalibrated,
+    isTracking,
   } = useGaze();
+
+  const appStage = useIrisStore(state => state.appStage);
+  const setAppStage = useIrisStore(state => state.setAppStage);
 
   const prevBlinkRef = useRef(blinkCount);
   const [ready, setReady]   = useState(false);   // target has settled — blink to confirm
@@ -24,7 +29,7 @@ export function CalibrationOverlay() {
 
   // Reset "ready" state when the step changes
   useEffect(() => {
-    setReady(false);
+    setTimeout(() => setReady(false), 0);
     clearTimeout(timerRef.current);
     if (isCalibrating) {
       timerRef.current = setTimeout(() => setReady(true), DWELL_BEFORE_READY_MS);
@@ -46,6 +51,22 @@ export function CalibrationOverlay() {
       }, 250);
     }
   }, [blinkCount, isCalibrating, ready, recordCalibrationPoint]);
+
+  // Auto-start calibration if we enter the calibrating stage and camera is ready
+  useEffect(() => {
+    if (appStage === 'calibrating' && !isCalibrating && !isCalibrated && isTracking) {
+      startCalibration();
+    }
+  }, [appStage, isCalibrating, isCalibrated, isTracking, startCalibration]);
+
+  // Move to project stage when calibration finishes
+  useEffect(() => {
+    if (appStage === 'calibrating' && isCalibrated) {
+      setAppStage('project');
+    }
+  }, [appStage, isCalibrated, setAppStage]);
+
+  if (appStage === 'landing') return null;
 
   if (!isCalibrating) {
     return (

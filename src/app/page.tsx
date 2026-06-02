@@ -9,10 +9,11 @@ import { GazeProvider } from "@/components/GazeProvider";
 import { useGaze } from "@/lib/gazeContext";
 import { GazeCursor } from "@/components/GazeCursor";
 import { CalibrationOverlay } from "@/components/CalibrationOverlay";
+import { LandingPage } from "@/components/LandingPage";
 
 function AppContent() {
+  const { appStage, sttReady, sttDownloadProgress, liveCaption, sttError } = useIrisStore();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { sttReady, sttDownloadProgress, liveCaption, sttError } = useIrisStore();
   
   // Use the stream provided by the eye tracker
   const { stream, startCalibration } = useGaze();
@@ -24,7 +25,7 @@ function AppContent() {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, appStage]);
 
   // Recenter keyboard shortcut
   useEffect(() => {
@@ -42,50 +43,56 @@ function AppContent() {
 
   return (
     <main className="h-screen w-screen overflow-hidden flex flex-col bg-[var(--iris-bg)] text-[var(--iris-text)] relative pt-12">
-      <CalibrationOverlay />
+      {appStage === 'landing' && <LandingPage />}
       
-      {/* Video Preview — glass card */}
-      <div className="fixed bottom-4 right-4 w-56 rounded-xl z-50 overflow-hidden iris-glass" style={{ boxShadow: "var(--shadow-elevated)" }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-auto opacity-60 [transform:scaleX(-1)]"
-        />
-        {sttError && (
-          <div className="absolute inset-0 bg-[var(--iris-danger)]/90 flex flex-col items-center justify-center p-3 text-center">
-            <span className="text-white font-semibold text-xs mb-1">WHISPER ERROR</span>
-            <span className="text-white/80 text-[10px] leading-tight truncate w-full">{sttError}</span>
-          </div>
-        )}
-        {!sttReady && !sttError && (
-          <div className="absolute bottom-0 left-0 w-full h-5 bg-black/70 flex items-center justify-center">
-            <div
-              className="absolute left-0 top-0 h-full transition-all duration-300"
-              style={{ width: `${sttDownloadProgress}%`, background: "var(--iris-accent)" }}
+      {appStage !== 'landing' && <CalibrationOverlay />}
+      
+      {appStage === 'project' && (
+        <>
+          {/* Video Preview — glass card */}
+          <div className="fixed bottom-4 right-4 w-56 rounded-xl z-50 overflow-hidden iris-glass" style={{ boxShadow: "var(--shadow-elevated)" }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-auto opacity-60 [transform:scaleX(-1)]"
             />
-            <span className="relative z-10 text-[9px] font-medium tracking-wider text-[var(--iris-text-secondary)]">
-              WHISPER {sttDownloadProgress}%
-            </span>
+            {sttError && (
+              <div className="absolute inset-0 bg-[var(--iris-danger)]/90 flex flex-col items-center justify-center p-3 text-center">
+                <span className="text-white font-semibold text-xs mb-1">WHISPER ERROR</span>
+                <span className="text-white/80 text-[10px] leading-tight truncate w-full">{sttError}</span>
+              </div>
+            )}
+            {!sttReady && !sttError && (
+              <div className="absolute bottom-0 left-0 w-full h-5 bg-black/70 flex items-center justify-center">
+                <div
+                  className="absolute left-0 top-0 h-full transition-all duration-300"
+                  style={{ width: `${sttDownloadProgress}%`, background: "var(--iris-accent)" }}
+                />
+                <span className="relative z-10 text-[9px] font-medium tracking-wider text-[var(--iris-text-secondary)]">
+                  WHISPER {sttDownloadProgress}%
+                </span>
+              </div>
+            )}
+            {sttReady && liveCaption && !sttError && (
+              <div className="absolute bottom-0 left-0 w-full min-h-[20%] iris-glass-strong flex items-center justify-center p-2">
+                <span className="text-sm font-semibold text-[var(--iris-accent)] text-center leading-snug tracking-wide">
+                  {liveCaption}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-        {sttReady && liveCaption && !sttError && (
-          <div className="absolute bottom-0 left-0 w-full min-h-[20%] iris-glass-strong flex items-center justify-center p-2">
-            <span className="text-sm font-semibold text-[var(--iris-accent)] text-center leading-snug tracking-wide">
-              {liveCaption}
-            </span>
+
+          <NodeBuilder />
+
+          <div className="flex-1 min-h-0 w-full h-full z-10 relative">
+            <GridUI />
           </div>
-        )}
-      </div>
 
-      <NodeBuilder />
-
-      <div className="flex-1 min-h-0 w-full h-full z-10 relative">
-        <GridUI />
-      </div>
-
-      <GazeCursor />
+          <GazeCursor />
+        </>
+      )}
     </main>
   );
 }

@@ -34,12 +34,14 @@ export function SpeakHandler() {
       try {
         const sentence = await webLlmService.generate(selectedNodes);
         setStatus("Speaking…");
+        useIrisStore.getState().setGeneratedSpeech(sentence);
         await ttsService.speak(sentence);
+        clearNodes();
         setIsSpeaking(false);
         setStatus("Ready");
-        clearNodes();
       } catch (e) {
         console.error(e);
+        clearNodes();
         setIsSpeaking(false);
         setStatus("Ready");
       }

@@ -3,6 +3,8 @@ import { ttsService } from "@/utils/ttsService";
 import { webLlmService } from "@/utils/webLlmService";
 
 interface IrisState {
+  appStage: 'landing' | 'calibrating' | 'project';
+  setAppStage: (stage: 'landing' | 'calibrating' | 'project') => void;
   cursor: { x: number; y: number };
   selectedNodes: string[];
   predictions: string[];
@@ -22,6 +24,7 @@ interface IrisState {
   hoveredNodeId: string | null;
   dwellProgress: number;
   lastTriggeredNodeId: string | null;
+  generatedSpeech: string | null;
   isDebugMode: boolean;
   activeContextNodeIds: string[] | null;
   isContextResponse: boolean;
@@ -61,6 +64,7 @@ interface IrisState {
   setDwellProgress: (progress: number) => void;
   setLastTriggeredNodeId: (id: string | null) => void;
   toggleDebugMode: () => void;
+  setGeneratedSpeech: (s: string | null) => void;
   setActiveContextNodeIds: (ids: string[] | null) => void;
   setIsContextResponse: (val: boolean) => void;
   executeAction: (targetId: string, targetElement?: Element) => void;
@@ -69,6 +73,8 @@ interface IrisState {
 const defaultBlocks = ["Physical", "Social", "Pain", "Yes", "No", "Hungry", "Thirsty", "Entertainment", "Music", "Sleep Mode", "Re-Optimize Layout"];
 
 export const useIrisStore = create<IrisState>((set) => ({
+  appStage: 'landing',
+  setAppStage: (stage) => set({ appStage: stage }),
   cursor: { x: 0, y: 0 },
   selectedNodes: [],
   predictions: [],
@@ -88,6 +94,7 @@ export const useIrisStore = create<IrisState>((set) => ({
   hoveredNodeId: null,
   dwellProgress: 0,
   lastTriggeredNodeId: null,
+  generatedSpeech: null,
   isDebugMode: true,
   activeContextNodeIds: null,
   isContextResponse: false,
@@ -108,7 +115,7 @@ export const useIrisStore = create<IrisState>((set) => ({
   triggerRecenter: () => set({ requestRecenter: true }),
   clearRecenterRequest: () => set({ requestRecenter: false }),
   addNode: (node) => set((state) => ({ selectedNodes: [...state.selectedNodes, node], activeContextNodeIds: null, isContextResponse: false })),
-  clearNodes: () => set({ selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false }),
+  clearNodes: () => set({ selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null }),
   setPredictions: (words) => set({ predictions: words }),
   setIsPredicting: (status) => set({ isPredicting: status }),
   setShowMediaModal: (val) => set({ showMediaModal: val }),
@@ -148,6 +155,7 @@ export const useIrisStore = create<IrisState>((set) => ({
   setDwellProgress: (progress) => set({ dwellProgress: progress }),
   setLastTriggeredNodeId: (id) => set({ lastTriggeredNodeId: id }),
   toggleDebugMode: () => set((state) => ({ isDebugMode: !state.isDebugMode })),
+  setGeneratedSpeech: (s) => set({ generatedSpeech: s }),
   setActiveContextNodeIds: (ids) => set({ activeContextNodeIds: ids }),
   setIsContextResponse: (val) => set({ isContextResponse: val }),
   executeAction: (targetId, targetElement) => set((state) => {
@@ -156,7 +164,7 @@ export const useIrisStore = create<IrisState>((set) => ({
         targetElement.dispatchEvent(new CustomEvent('dwell-click'));
       }
     } else if (targetId === "clear-block") {
-      return { selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false };
+      return { selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null };
     } else if (targetId === "wake-block") {
       return { sleepMode: false };
     } else if (targetId === "close-modal") {
@@ -207,7 +215,8 @@ export const useIrisStore = create<IrisState>((set) => ({
           selectedNodes: newNodes, 
           blockFrequencies: newFreqs,
           activeContextNodeIds: null, 
-          isContextResponse: false 
+          isContextResponse: false,
+          generatedSpeech: null
         };
       }
     }

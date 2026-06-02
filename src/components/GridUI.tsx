@@ -34,6 +34,7 @@ export function GridUI() {
     selectedNodes, predictions, isPredicting, coreBlocks,
     activeTone, sleepMode, showMediaModal, isTranscribing,
     isDebugMode, toggleDebugMode, isContextResponse,
+    generatedSpeech,
   } = useIrisStore();
 
   const toneModifiers = ["Sarcastic", "Urgent", "Polite", "Joyful"];
@@ -104,19 +105,30 @@ export function GridUI() {
         </div>
       )}
 
-      {/* ── Centered Response Overlay ── */}
+      {/* ── Centered Response Overlay (Full Screen) ── */}
       {isContextResponse && (
-        <div className="fixed inset-0 flex items-center justify-center p-20 z-[10000]">
-          <div className="w-full max-w-6xl h-[36vh] flex gap-4 items-stretch">
+        <div className="fixed inset-0 bg-[#FDF1D0] z-[10000] flex items-center justify-center p-24">
+          <div className="absolute top-4 left-4 flex gap-2">
+            <div className="bg-[#4a6b63]/80 text-white rounded px-3 py-1.5 text-[11px] font-bold tracking-wider">[DEBUG MODE: OFF]</div>
+            <div className="bg-[#4a6b63]/80 text-white rounded px-3 py-1.5 text-[11px] font-bold tracking-wider">[RE-CENTER (C)]</div>
+          </div>
+          <button
+            onClick={() => useIrisStore.getState().clearNodes()}
+            className="absolute top-4 right-4 bg-transparent border border-[#4a6b63]/30 text-[#4a6b63] font-bold rounded-lg px-6 py-2 hover:bg-[#4a6b63]/10 transition-colors"
+          >
+            Clear
+          </button>
+          <div className="w-full max-w-7xl h-[55vh] flex gap-10 items-stretch">
             {predictions.map((word, index) => (
               <GazeButton
                 key={`centered-pred-${word}-${index}`}
                 id={`pred-${word}`}
                 data-block-id={word}
-                customDwellTime={1800}
-                className="h-full w-full"
+                customDwellTime={1500}
+                className="flex-1 h-full !rounded-[40px] shadow-[0_20px_40px_rgba(0,0,0,0.1)] border-b-8 border-black/10 !bg-[var(--iris-surface)]"
                 accentColor={PREDICTION_ACCENTS[index % PREDICTION_ACCENTS.length]}
                 text={word}
+                textClassName="text-3xl font-bold text-black"
               />
             ))}
           </div>
@@ -124,7 +136,7 @@ export function GridUI() {
       )}
 
       {/* ── Main Layout ── */}
-      <div className={`w-full h-full overflow-hidden flex flex-col ${isContextResponse ? "opacity-0 pointer-events-none" : ""} transition-opacity duration-500`}>
+      <div className={`w-full h-full overflow-hidden flex flex-col transition-opacity duration-500 ${isContextResponse ? "opacity-0 pointer-events-none hidden" : ""}`}>
         <div className="flex w-full h-full pt-6">
 
           {/* ── Left Tone Column ── */}
@@ -148,28 +160,31 @@ export function GridUI() {
           {/* ── Main Grid Area ── */}
           <div className="flex flex-col flex-1 h-full p-4 px-6 overflow-hidden relative">
 
-            {/* Prediction Strip (top ~18%) */}
             <div className="h-[18vh] shrink-0 pb-2 mb-4 flex gap-3 w-full items-stretch">
-              {!isContextResponse && (
-                isPredicting ? (
-                  <>
-                    <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" />
-                    <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" style={{ animationDelay: "0.2s" }} />
-                    <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" style={{ animationDelay: "0.4s" }} />
-                  </>
-                ) : (
-                  predictions.map((word, index) => (
-                    <GazeButton
-                      key={`pred-${word}-${index}`}
-                      id={`pred-${word}`}
-                      data-block-id={word}
-                      customDwellTime={1800}
-                      className="h-full w-full"
-                      accentColor={PREDICTION_ACCENTS[index % PREDICTION_ACCENTS.length]}
-                      text={word}
-                    />
-                  ))
-                )
+              {generatedSpeech ? (
+                <div className="h-full w-full flex items-center justify-center iris-glass-strong rounded-[var(--radius-lg)] p-6 border border-[var(--iris-accent)]/30 shadow-[0_0_20px_var(--iris-accent)]/10">
+                  <p className="text-2xl font-[var(--font-geist-mono)] tracking-wide text-[var(--iris-text)] text-center w-full">
+                    "{generatedSpeech}"
+                  </p>
+                </div>
+              ) : isPredicting ? (
+                <>
+                  <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" />
+                  <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" style={{ animationDelay: "0.2s" }} />
+                  <div className="h-full w-full rounded-[var(--radius-lg)] iris-shimmer" style={{ animationDelay: "0.4s" }} />
+                </>
+              ) : (
+                predictions.map((word, index) => (
+                  <GazeButton
+                    key={`pred-${word}-${index}`}
+                    id={`pred-${word}`}
+                    data-block-id={word}
+                    customDwellTime={1800}
+                    className="h-full w-full"
+                    accentColor={PREDICTION_ACCENTS[index % PREDICTION_ACCENTS.length]}
+                    text={word}
+                  />
+                ))
               )}
             </div>
 

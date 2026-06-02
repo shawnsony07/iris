@@ -28,6 +28,7 @@ export interface GazeState {
   hoverStateRef: MutableRefObject<{ isHovering: boolean; dwellPct: number; snapTarget?: GazePosition }>;
 
   // ── Methods ──
+  initialize: () => void;
   startCalibration: () => void;
   recordCalibrationPoint: () => void; // called externally to capture current iris pos
   resetCalibration: () => void;
@@ -51,6 +52,7 @@ export const GazeContext = createContext<GazeState>({
   gazePositionRef:  dummyRef   as MutableRefObject<GazePosition>,
   rawIrisRef:       dummyRef   as MutableRefObject<GazePosition>,
   hoverStateRef:    dummyHover as MutableRefObject<{ isHovering: boolean; dwellPct: number; snapTarget?: GazePosition }>,
+  initialize:       noop,
   startCalibration: noop,
   recordCalibrationPoint: noop,
   resetCalibration: noop,

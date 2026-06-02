@@ -4,20 +4,41 @@ import { useIrisStore } from "@/store/useIrisStore";
 class WebLlmService {
   private engine: MLCEngine | null = null;
   private isLoaded = false;
+  private requestLock: Promise<void> = Promise.resolve();
+  private initPromise: Promise<void> | null = null;
   
+  private async enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const previous = this.requestLock;
+    let resolveLock!: () => void;
+    this.requestLock = new Promise(r => { resolveLock = r; });
+    
+    try {
+      await previous;
+      return await task();
+    } finally {
+      resolveLock();
+    }
+  }
+
   async init(setProgress: (msg: string) => void) {
     if (this.engine) return;
-    try {
-      this.engine = await CreateMLCEngine("Phi-3-mini-4k-instruct-q4f16_1-MLC", {
-        initProgressCallback: (report: InitProgressReport) => {
-          setProgress(report.text);
-        }
-      });
-      this.isLoaded = true;
-    } catch (e) {
-      console.error(e);
-      setProgress("Failed to load model.");
-    }
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      try {
+        this.engine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
+          initProgressCallback: (report: InitProgressReport) => {
+            setProgress(report.text);
+          }
+        });
+        this.isLoaded = true;
+      } catch (e) {
+        console.error(e);
+        setProgress("Failed to load model.");
+      }
+    })();
+
+    return this.initPromise;
   }
 
   async generate(keywords: string[]): Promise<string> {
@@ -34,15 +55,13 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
     const userPrompt = `Keywords: [${keywords.join(", ")}]`;
 
     try {
-      const reply = await this.engine.chat.completions.create({
+      const reply = await this.enqueue(() => this.engine!.chat.completions.create({
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: userPrompt }
         ],
         max_tokens: 256, // Mitigate resource exhaustion by enforcing a strict token limit
-        // @ts-expect-error - WebLLM types don't officially support 'user', but security scanner requires it
-        user: "iris-local-user", // Identify end-user request context to prevent abuse tracing issues
-      });
+      }));
       
       const choice = reply.choices[0];
       const message = choice.message as any;
@@ -67,15 +86,13 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
     const userMessage = `Selected concepts: ${selectedNodes.join(", ")}`;
     
     try {
-      const reply = await this.engine.chat.completions.create({
+      const reply = await this.enqueue(() => this.engine!.chat.completions.create({
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage }
         ],
         max_tokens: 15, // Extremely low limit for speed
-        // @ts-expect-error - WebLLM types don't officially support 'user', but security scanner requires it
-        user: "iris-local-user",
-      });
+      }));
 
       const content = reply.choices[0]?.message?.content || "";
       const parsedArray = content.split(",").map(w => w.trim()).filter(w => w.length > 0).slice(0, 3);
@@ -92,21 +109,28 @@ Output ONLY the final sentence. No quotes, no conversational filler, and no addi
 
     useIrisStore.getState().setIsPredicting(true);
 
-    const systemMessage = `You are an AAC predictive UI. The caregiver just asked the patient: '${ambientContext}'. Output a comma-separated list of the 3 most logical short responses the patient might want to give. Output ONLY the 3 comma-separated options. No markdown.`;
-    const userMessage = "Output the 3 options.";
+    const systemMessage = `You are an AAC predictive UI. The caregiver just asked the patient: '${ambientContext}'.
+Provide exactly 3 short, distinct responses the patient might want to give.
+Rules:
+1. ONLY output a comma-separated list of 3 items.
+2. NO conversational filler, NO intro text, NO markdown.
+Example output: Yes, No, I don't know`;
+    const userMessage = "Output the 3 comma-separated options now.";
 
     try {
-      const reply = await this.engine.chat.completions.create({
+      const reply = await this.enqueue(() => this.engine!.chat.completions.create({
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage }
         ],
-        max_tokens: 20,
-        // @ts-expect-error - WebLLM types don't officially support 'user', but security scanner requires it
-        user: "iris-local-user",
-      });
+        max_tokens: 25,
+      }));
 
-      const content = reply.choices[0]?.message?.content || "";
+      let content = reply.choices[0]?.message?.content || "";
+      // Strip common LLM conversational filler prefixes
+      content = content.replace(/^.*?:\s*/, "");
+      content = content.replace(/["'\n\r]/g, "");
+      
       const parsedArray = content.split(",").map(w => w.trim()).filter(w => w.length > 0).slice(0, 3);
       
       if (parsedArray.length > 0) {
@@ -130,15 +154,13 @@ Output ONLY a comma-separated list of the relevant concepts from the available l
     const userMessage = "Output the relevant concepts.";
 
     try {
-      const reply = await this.engine.chat.completions.create({
+      const reply = await this.enqueue(() => this.engine!.chat.completions.create({
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage }
         ],
         max_tokens: 50,
-        // @ts-expect-error - WebLLM types don't officially support 'user', but security scanner requires it
-        user: "iris-local-user",
-      });
+      }));
 
       const content = reply.choices[0]?.message?.content || "";
       const parsedArray = content.split(",")
@@ -157,4 +179,12 @@ Output ONLY a comma-separated list of the relevant concepts from the available l
   }
 }
 
-export const webLlmService = new WebLlmService();
+const globalForWebLlm = globalThis as unknown as {
+  webLlmService: WebLlmService | undefined;
+};
+
+export const webLlmService = globalForWebLlm.webLlmService ?? new WebLlmService();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForWebLlm.webLlmService = webLlmService;
+}

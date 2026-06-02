@@ -25,7 +25,7 @@ interface ReactiveState {
   stream: MediaStream | null;
 }
 
-export function GazeProvider({ children }: { children: ReactNode }) {
+export function GazeProvider({ children, autoStart = false }: { children: ReactNode, autoStart?: boolean }) {
   // ── Refs (updated every frame, no re-render cost) ──────────────────────────
   const videoRef        = useRef<HTMLVideoElement>(null);
   const landmarkerRef   = useRef<unknown>(null);
@@ -164,7 +164,9 @@ export function GazeProvider({ children }: { children: ReactNode }) {
   }, [runLoop]);
 
   // ── MediaPipe init ─────────────────────────────────────────────────────────
-  useEffect(() => {
+  const initialize = useCallback(() => {
+    if (rs.initStatus !== 'idle' && rs.initStatus !== 'error') return; // Already initializing/ready
+
     let cancelled = false;
 
     // Suppress Emscripten stderr INFO/WARN logs that Next.js intercepts and treats as Unhandled Errors
@@ -190,32 +192,18 @@ export function GazeProvider({ children }: { children: ReactNode }) {
 
         const filesetResolver = await FilesetResolver.forVisionTasks(WASM_URL);
 
-        let isGPU = true;
-        let fl;
-        try {
-          fl = await FaceLandmarker.createFromOptions(filesetResolver, {
-            baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-            runningMode: 'VIDEO',
-            numFaces: 1,
-            outputFaceBlendshapes: false,
-            outputFacialTransformationMatrixes: false,
-          });
-        } catch {
-          // Fallback to CPU/WASM if WebGPU is unavailable
-          isGPU = false;
-          fl = await FaceLandmarker.createFromOptions(filesetResolver, {
-            baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
-            runningMode: 'VIDEO',
-            numFaces: 1,
-            outputFaceBlendshapes: false,
-            outputFacialTransformationMatrixes: false,
-          });
-        }
+        const fl = await FaceLandmarker.createFromOptions(filesetResolver, {
+          baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
+          runningMode: 'VIDEO',
+          numFaces: 1,
+          outputFaceBlendshapes: false,
+          outputFacialTransformationMatrixes: false,
+        });
 
         if (cancelled) { fl.close(); return; }
 
         landmarkerRef.current = fl;
-        setRS(prev => ({ ...prev, isWebGPU: isGPU }));
+        setRS(prev => ({ ...prev, isWebGPU: false }));
         await startCamera();
       } catch (e) {
         if (!cancelled) {
@@ -227,15 +215,17 @@ export function GazeProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
-
     return () => {
       cancelled = true;
       console.error = originalConsoleError;
-      cancelAnimationFrame(animFrameRef.current);
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      (landmarkerRef.current as { close?: () => void } | null)?.close?.();
     };
-  }, [startCamera]);
+  }, [rs.initStatus, startCamera]);
+
+  useEffect(() => {
+    if (autoStart) {
+      initialize();
+    }
+  }, [autoStart, initialize]);
 
   // ── Calibration controls ───────────────────────────────────────────────────
   const startCalibration = useCallback(() => {
@@ -284,6 +274,7 @@ export function GazeProvider({ children }: { children: ReactNode }) {
     gazePositionRef,
     rawIrisRef,
     hoverStateRef,
+    initialize,
     startCalibration,
     recordCalibrationPoint,
     resetCalibration,
@@ -291,10 +282,17 @@ export function GazeProvider({ children }: { children: ReactNode }) {
 
   return (
     <GazeContext.Provider value={value}>
-      {/* Hidden video element — MediaPipe reads frames from here */}
       <video
         ref={videoRef}
-        style={{ position: 'absolute', opacity: 0, width: 640, height: 480, pointerEvents: 'none', zIndex: -100 }}
+        style={{
+          opacity: 0,
+          pointerEvents: 'none',
+          position: 'fixed',
+          top: '-9999px',
+          left: '-9999px',
+          width: '640px',
+          height: '480px',
+        }}
         playsInline
         muted
         aria-hidden="true"

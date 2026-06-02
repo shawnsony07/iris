@@ -35,7 +35,6 @@ export function GazeButton({
   const { gazePositionRef, blinkCount, isCalibrating, hoverStateRef } = useGaze();
 
   const btnRef        = useRef<HTMLDivElement>(null);
-  const dwellRingRef  = useRef<SVGCircleElement>(null);
   const wasHoveredRef = useRef(false);
   const dwellStartRef = useRef(0);
   const prevBlinkRef  = useRef(blinkCount);
@@ -51,12 +50,13 @@ export function GazeButton({
     const tick = () => {
       if (btnRef.current && !dataDisabled) {
         const { x, y } = gazePositionRef.current;
-        const r   = btnRef.current.getBoundingClientRect();
+        const r = btnRef.current.getBoundingClientRect();
         
-        // Add a 60px margin (hysteresis) to the hitbox if we are already hovering this button
-        // This makes the button "sticky" and prevents accidental un-hovering during slight eye jitters
-        const margin = wasHoveredRef.current ? 60 : 0;
-        const hit = x >= r.left - margin && x <= r.right + margin && y >= r.top - margin && y <= r.bottom + margin;
+        let hit = false;
+        if (r.width > 0 && r.height > 0) {
+          const margin = wasHoveredRef.current ? 60 : 0;
+          hit = x >= r.left - margin && x <= r.right + margin && y >= r.top - margin && y <= r.bottom + margin;
+        }
         
         const was = wasHoveredRef.current;
 
@@ -68,21 +68,16 @@ export function GazeButton({
             dwellStartRef.current = performance.now();
             hoverStateRef.current = { isHovering: true, dwellPct: 0, snapTarget: undefined };
           } else {
-            // Clear ring
-            if (dwellRingRef.current) {
-              dwellRingRef.current.style.strokeDashoffset = String(CIRC);
-            }
+            // Clear hover state
             if (hoverStateRef.current.isHovering) {
               hoverStateRef.current = { isHovering: false, dwellPct: 0, snapTarget: undefined };
             }
           }
         }
 
-        // While hovering: update dwell ring directly and set snap target
-        if (hit && dwellRingRef.current) {
+        // While hovering: update hover state for the cursor to draw the ring and snap
+        if (hit) {
           const pct = Math.min(1, (performance.now() - dwellStartRef.current) / DWELL_VISUAL_MS);
-          const offset = CIRC * (1 - pct);
-          dwellRingRef.current.style.strokeDashoffset = String(offset);
           
           // Once the dwell starts, provide the center of the button to the cursor to snap to
           const snapTarget = pct > 0.05 ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
@@ -157,7 +152,7 @@ export function GazeButton({
       prevBlinkRef.current = blinkCount;
       if (isHovered && !dataDisabled) {
         triggerAction();
-        setJustSelected(true);
+        setTimeout(() => setJustSelected(true), 0);
         setTimeout(() => setJustSelected(false), 600);
       }
     }
