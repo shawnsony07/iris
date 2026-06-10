@@ -39,6 +39,7 @@ class TTSService {
   }
 
   private speakPromises: Array<(value: void | PromiseLike<void>) => void> = [];
+  private silenceTimeout: NodeJS.Timeout | null = null;
 
   public speak(text: string): Promise<void> {
     return new Promise((resolve) => {
@@ -48,6 +49,10 @@ class TTSService {
         return;
       }
       this.ensureAudioContext();
+      if (this.silenceTimeout) {
+        clearTimeout(this.silenceTimeout);
+        this.silenceTimeout = null;
+      }
       useIrisStore.getState().setIsAppSpeaking(true);
       console.log(`[TTSService] Synthesizing: "${text}"`);
       this.speakPromises.push(resolve);
@@ -78,7 +83,12 @@ class TTSService {
     const resolve = this.speakPromises.shift();
     if (resolve) resolve();
     if (this.speakPromises.length === 0) {
-      useIrisStore.getState().setIsAppSpeaking(false);
+      if (this.silenceTimeout) clearTimeout(this.silenceTimeout);
+      this.silenceTimeout = setTimeout(() => {
+        if (this.speakPromises.length === 0) {
+          useIrisStore.getState().setIsAppSpeaking(false);
+        }
+      }, 600); // 600ms grace period for room echo
     }
   }
 }

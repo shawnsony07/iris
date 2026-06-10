@@ -20,6 +20,7 @@ interface GazeButtonProps {
   accentColor?: string;
   textColor?: string;
   onClick?: () => void;
+  textClassName?: string;
 }
 
 export function GazeButton({ 
@@ -34,6 +35,7 @@ export function GazeButton({
   accentColor,
   textColor,
   onClick,
+  textClassName,
 }: GazeButtonProps) {
   const { isDebugMode } = useIrisStore();
   const { gazePositionRef, blinkCount, isCalibrating, hoverStateRef } = useGaze();
@@ -215,7 +217,7 @@ export function GazeButton({
           </span>
         )}
         <span 
-          className="font-bold text-sm md:text-base lg:text-lg tracking-wide w-full text-center break-words whitespace-normal leading-snug line-clamp-2"
+          className={textClassName || "font-bold text-sm md:text-base lg:text-lg tracking-wide w-full text-center break-words whitespace-normal leading-snug line-clamp-2"}
           style={{ color: effectiveTextColor }}
         >
           {text}

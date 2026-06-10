@@ -20,7 +20,9 @@ interface IrisState {
   sttDownloadProgress: number;
   sttReady: boolean;
   liveCaption: string;
-  sttError: string | null;
+   sttError: string | null;
+  llmStatus: string;
+  llmReady: boolean;
   hoveredNodeId: string | null;
   dwellProgress: number;
   lastTriggeredNodeId: string | null;
@@ -60,7 +62,9 @@ interface IrisState {
   setSttDownloadProgress: (progress: number) => void;
   setSttReady: (status: boolean) => void;
   setLiveCaption: (caption: string) => void;
-  setSttError: (error: string | null) => void;
+   setSttError: (error: string | null) => void;
+  setLlmStatus: (status: string) => void;
+  setLlmReady: (ready: boolean) => void;
   setHoveredNodeId: (id: string | null) => void;
   setDwellProgress: (progress: number) => void;
   setLastTriggeredNodeId: (id: string | null) => void;
@@ -92,7 +96,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   sttDownloadProgress: 0,
   sttReady: false,
   liveCaption: "",
-  sttError: null,
+   sttError: null,
+  llmStatus: "Loading Model…",
+  llmReady: false,
   hoveredNodeId: null,
   dwellProgress: 0,
   lastTriggeredNodeId: null,
@@ -153,7 +159,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   setSttDownloadProgress: (progress) => set({ sttDownloadProgress: progress }),
   setSttReady: (status) => set({ sttReady: status }),
   setLiveCaption: (caption) => set({ liveCaption: caption }),
-  setSttError: (error) => set({ sttError: error }),
+   setSttError: (error) => set({ sttError: error }),
+  setLlmStatus: (status) => set({ llmStatus: status }),
+  setLlmReady: (ready) => set({ llmReady: ready }),
   setHoveredNodeId: (id) => set({ hoveredNodeId: id }),
   setDwellProgress: (progress) => set({ dwellProgress: progress }),
   setLastTriggeredNodeId: (id) => set({ lastTriggeredNodeId: id }),

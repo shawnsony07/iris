@@ -20,7 +20,7 @@ class WebLlmService {
     }
   }
 
-  async init(setProgress: (msg: string) => void) {
+  async init() {
     if (this.engine) return;
     if (this.initPromise) return this.initPromise;
 
@@ -28,13 +28,18 @@ class WebLlmService {
       try {
         this.engine = await CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
           initProgressCallback: (report: InitProgressReport) => {
-            setProgress(report.text);
+            useIrisStore.getState().setLlmStatus(report.text);
+            if (report.text.includes("Finish") || report.text.includes("Loaded")) {
+              useIrisStore.getState().setLlmReady(true);
+            }
           }
         });
         this.isLoaded = true;
+        useIrisStore.getState().setLlmReady(true);
+        useIrisStore.getState().setLlmStatus("Ready");
       } catch (e) {
         console.error(e);
-        setProgress("Failed to load model.");
+        useIrisStore.getState().setLlmStatus("Failed to load model.");
       }
     })();
 

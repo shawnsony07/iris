@@ -7,51 +7,42 @@ import { GazeButton } from "./GazeButton";
 import { Volume2 } from "lucide-react";
 
 export function SpeakHandler() {
-  const { selectedNodes, clearNodes } = useIrisStore();
-  const [status, setStatus] = useState("Loading Model…");
-  const [isReady, setIsReady] = useState(false);
+  const { selectedNodes, clearNodes, llmReady, llmStatus } = useIrisStore();
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
-    webLlmService.init((msg) => {
-      setStatus(msg);
-      if (msg.includes("Finish") || msg.includes("Loaded")) {
-        setIsReady(true);
-      }
-    }).then(() => {
-      setIsReady(true);
-      setStatus("Ready");
-    });
+    webLlmService.init();
   }, []);
 
   useEffect(() => {
     const el = document.getElementById("speak-block");
     const handleDwell = async () => {
-      if (!isReady || selectedNodes.length === 0 || isSpeaking) return;
+      if (!llmReady || selectedNodes.length === 0 || isSpeaking) return;
       
       setIsSpeaking(true);
-      setStatus("Generating…");
+      setLocalStatus("Generating…");
       try {
         const sentence = await webLlmService.generate(selectedNodes);
-        setStatus("Speaking…");
+        setLocalStatus("Speaking…");
         useIrisStore.getState().setGeneratedSpeech(sentence);
         await ttsService.speak(sentence);
         clearNodes();
         setIsSpeaking(false);
-        setStatus("Ready");
+        setLocalStatus(null);
       } catch (e) {
         console.error(e);
         clearNodes();
         setIsSpeaking(false);
-        setStatus("Ready");
+        setLocalStatus(null);
       }
     };
 
     el?.addEventListener('dwell-click', handleDwell);
     return () => el?.removeEventListener('dwell-click', handleDwell);
-  }, [selectedNodes, isReady, isSpeaking, clearNodes]);
+  }, [selectedNodes, llmReady, isSpeaking, clearNodes]);
 
-  const canSpeak = isReady && selectedNodes.length > 0 && !isSpeaking;
+  const canSpeak = llmReady && selectedNodes.length > 0 && !isSpeaking;
 
   return (
     <div className="flex flex-col gap-2 w-full h-full justify-center">
@@ -66,7 +57,7 @@ export function SpeakHandler() {
         text="SPEAK"
       />
       <div className="text-[11px] text-[var(--iris-text-muted)] text-center font-[var(--font-geist-mono)] tracking-wide truncate h-5 shrink-0 leading-5">
-        {status}
+        {localStatus || llmStatus}
       </div>
     </div>
   );
