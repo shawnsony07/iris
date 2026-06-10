@@ -134,6 +134,7 @@ export function GazeButton({
       }
       
       if (state.isContextResponse && id.startsWith("pred-")) {
+        state.setGeneratedSpeech(nodeVal);
         ttsService.speak(nodeVal);
         state.setIsContextResponse(false);
         state.setPredictions([]);

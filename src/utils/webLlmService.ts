@@ -49,6 +49,12 @@ class WebLlmService {
   async generate(keywords: string[]): Promise<string> {
     if (!this.engine || !this.isLoaded) return "";
 
+    // Bypass LLM entirely if the user selected a context-aware predictive response.
+    // These are already fully formed short answers (e.g. "I don't know", "Yes, that's right").
+    if (useIrisStore.getState().wasContextResponse) {
+      return keywords.join(" ");
+    }
+
     // Hardcode bypass for extremely basic single-word affirmations/negations
     // to prevent the 1B model from hallucinating unnecessary context.
     if (keywords.length === 1) {
@@ -134,17 +140,22 @@ Write the single sentence now:`;
     }
   }
   async predictFromAmbientContext(ambientContext: string): Promise<void> {
-    if (!this.engine || !this.isLoaded || !ambientContext) return;
+    if (!ambientContext) return;
+    
+    // If the LLM is still downloading/loading, provide a hardcoded fallback
+    // so the user still gets a response UI immediately.
+    if (!this.engine || !this.isLoaded) {
+      useIrisStore.getState().setPredictions(["Yes", "No", "I don't know"]);
+      useIrisStore.getState().setIsContextResponse(true);
+      return;
+    }
 
     useIrisStore.getState().setIsPredicting(true);
 
-    const systemMessage = `You are an AAC predictive UI. The caregiver just asked the patient: '${ambientContext}'.
-Provide exactly 3 short, distinct responses the patient might want to give.
-Rules:
-1. ONLY output a comma-separated list of 3 items.
-2. NO conversational filler, NO intro text, NO markdown.
-Example output: Yes, No, I don't know`;
-    const userMessage = "Output the 3 comma-separated options now.";
+    const systemMessage = "You are a helpful assistant.";
+    const userMessage = `Someone asks: "${ambientContext}"
+List 3 short, separate, natural responses I can say back. Format as a comma-separated list.
+Example: Yes I did, No not yet, I don't know`;
 
     try {
       const reply = await this.enqueue(() => this.engine!.chat.completions.create({
@@ -153,12 +164,16 @@ Example output: Yes, No, I don't know`;
           { role: "user", content: userMessage }
         ],
         max_tokens: 25,
+        temperature: 0.7,
       }));
 
       let content = reply.choices[0]?.message?.content || "";
       // Strip common LLM conversational filler prefixes
       content = content.replace(/^.*?:\s*/, "");
       content = content.replace(/["']/g, "");
+      // Strip parenthetical explanations e.g. "(This means yes)" or even unclosed ones like "(This acknowledges"
+      content = content.replace(/\(.*?(?:\)|$)/g, "");
+      content = content.replace(/\[.*?(?:\]|$)/g, "");
       
       // Split by commas OR newlines, then clean up numbers (e.g. "1. Yes")
       const parsedArray = content.split(/,|\n/)
@@ -168,6 +183,10 @@ Example output: Yes, No, I don't know`;
       
       if (parsedArray.length > 0) {
         useIrisStore.getState().setPredictions(parsedArray);
+        useIrisStore.getState().setIsContextResponse(true);
+      } else {
+        // Fallback if the LLM output couldn't be parsed
+        useIrisStore.getState().setPredictions(["Yes", "No", "I don't know"]);
         useIrisStore.getState().setIsContextResponse(true);
       }
     } catch (error) {

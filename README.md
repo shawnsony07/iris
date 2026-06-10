@@ -1,42 +1,49 @@
 # Project Iris 👁️
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![LiveKit](https://img.shields.io/badge/WebRTC-LiveKit-red)](https://livekit.io/)
 [![WebLLM](https://img.shields.io/badge/WebLLM-Llama_3.2_1B-blue)](https://webllm.mlc.ai/)
+[![Transformers.js](https://img.shields.io/badge/STT-Whisper-green)](https://huggingface.co/docs/transformers.js/index)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-FaceLandmarker-orange)](https://developers.google.com/mediapipe)
-[![Zustand](https://img.shields.io/badge/State-Zustand-yellow)](https://github.com/pmndrs/zustand)
-[![Twilio](https://img.shields.io/badge/Integration-Twilio-red)](https://www.twilio.com/)
+[![Python](https://img.shields.io/badge/Python-LiveKit_Agents-yellow)](https://python.org/)
 
-**Project Iris** is a highly-advanced, deeply accessible, eye-tracking communication platform (AAC) built for independence. Operating completely client-side in the browser, Iris leverages cutting-edge WebGPU-accelerated Large Language Models (LLMs) and advanced mathematical filters to map gaze intention.
+**Project Iris** is a highly-advanced, completely accessible, eye-tracking communication platform (AAC) built for patients with severe neurodegenerative diseases (like ALS). It operates with near-zero latency, running primarily client-side with cutting-edge Local AI, WebRTC telemedicine streaming, and a high-performance Python backend for complex Voice Activity Detection (VAD) and cloud transcription.
 
-It guarantees zero-latency execution, uncompromised user privacy, and an unshakeable Fitts's Law-compliant Neobrutalist UI designed specifically to mitigate gaze jitter.
+Iris features a robust Neobrutalist UI strictly designed around **Fitts's Law** to mitigate gaze jitter, ensuring absolute autonomy without catastrophic misclicks.
 
 ---
 
-## ⚙️ Technical Architecture
+## ⚙️ Technical Architecture & Topologies
 
-Project Iris runs almost entirely on the client side, removing the need for expensive cloud GPU hosting and ensuring sensitive medical/personal data never leaves the user's local machine.
+Project Iris utilizes a distributed local-cloud architecture. It heavily leverages client-side processing (WebGPU / WebAssembly) to protect sensitive patient data, falling back to secure cloud pipelines exclusively for doctor telemedicine connections.
 
 ### 1. Vision & Gaze Tracking Layer
 * **Engine:** MediaPipe FaceLandmarker (via WebAssembly).
-* **Processing Unit:** CPU-bound. Offloading facial mesh computation to the CPU ensures stable performance across lower-end integrated graphics devices, reserving VRAM explicitly for the LLM.
-* **Intention Mapping:** Employs advanced spatial mapping directly fed into a **Kalman filter** to smooth out pupil micro-saccades and lock onto exact target coordinates.
+* **Processing Topology:** CPU-bound. Offloading the massive facial mesh computation (478 3D landmarks) to the CPU ensures stable frames-per-second (FPS) across low-end integrated graphics, explicitly reserving device VRAM for local LLM inference.
+* **Intention Mapping:** Iris projects the exact eye-to-screen intersection vectors. These raw X/Y coordinates are fed continuously into a customized **Kalman Filter** that mathematically smooths out pupil micro-saccades and locks onto UI elements, triggering dwell-click events.
 
-### 2. Local AI & Inference Layer
-* **Engine:** `@mlc-ai/web-llm` utilizing WebGPU hardware acceleration.
-* **Model:** `Llama-3.2-1B-Instruct-q4f16_1-MLC`. 
-* **Implementation Details:** The 1.2 Billion parameter model has a memory footprint of ~700MB, safely operating under Chrome's strict WebGPU VRAM limits without crashing standard hardware. We utilize a strict `requestLock` and global instance cache to prevent React double-initialization leaks during hot-reloads.
-* **Capabilities:** Instantly expands raw keyword fragments (e.g., `["Thirsty", "Social"]`) into natural, polite, first-person speech while bypassing strict medical safety refusals.
+### 2. Telemedicine & WebRTC Streaming Layer
+* **Engine:** LiveKit SDK (`livekit-client`, `@livekit/components-react`).
+* **Topology:** A dedicated Next.js Serverless API route (`/api/livekit/token`) dynamically signs JWT security tokens, authorizing peer-to-peer WebRTC rooms. 
+* **Data Channels:** Instantly transmits exact patient-generated Speech-to-Text (`patient_text`) and Doctor transcriptions (`doctor_transcript`) bi-directionally over an ultra-low latency, reliable WebRTC DataChannel (UDP/TCP fallback), syncing both UI states simultaneously.
 
-### 3. Contextual Awareness & Audio
-* **Ambient Microphone:** Uses the native `SpeechRecognition` API (requires Chrome/Edge). Iris continuously listens to ambient conversation (e.g., a caregiver asking a question) to intelligently predict 3 logical response blocks in real-time.
-* **Speech Synthesis:** Utilizes the Web Speech API / TinyTTS for immediate, local, high-quality audio playback of the generated intent.
+### 3. Local AI & Inference Layer
+* **Predictive Engine:** `@mlc-ai/web-llm` utilizing raw WebGPU hardware acceleration in the browser.
+* **Model Pipeline:** `Llama-3.2-1B-Instruct-q4f16_1-MLC`. The 1.2 Billion parameter quantized Llama model has a microscopic VRAM footprint (~700MB), operating securely inside Chrome's strict WebGPU constraints.
+* **Capabilities:** When ambient context is captured, the local LLM predicts exactly 3 logical, first-person responses inside milliseconds, bypassing medical refusal guardrails and providing the patient with zero-typing communication options.
 
-### 4. UI / UX Engineering
-* **Neobrutalist Design:** High-contrast, sharp black borders, and stark shadows drastically improve visual clarity for visually impaired users.
-* **Ergonomics (Fitts's Law):** 120px tall buttons isolated by 80px dead-zone gaps. This architectural layout prevents catastrophic misclicks and provides safe resting zones for the eyes.
+### 4. Dual-Topology Speech-To-Text (STT) Pipelines
+To ensure 100% reliable transcriptions, Iris utilizes two concurrent audio-processing topologies:
+1. **Local Ambient STT (Patient Side):** 
+   * **Engine:** Transformers.js (`@xenova/transformers`) running Xenova's `whisper-tiny.en`.
+   * **Implementation:** Operates in an isolated Web Worker (`stt.worker.js`) via an `AudioContext` ScriptProcessor, converting float32 PCM audio to WebAssembly tensors. It runs purely on the local browser for absolute privacy during daily patient use.
+2. **Cloud Telemedicine STT (Doctor Side):**
+   * **Engine:** LiveKit Agents Python SDK.
+   * **Implementation:** The `worker/agent.py` script continuously monitors the WebRTC room. It implements **Silero VAD** for frame-perfect Voice Activity Detection and **Deepgram STT** via the LiveKit plugin. This ensures maximum transcription accuracy for the doctor over noisy network conditions.
 
-### 5. Backend & Integrations
-* **Twilio Emergency Lifeline:** A dedicated Next.js Serverless API route (`/api/twilio`) that securely connects to the Twilio SDK. Dwell-clicking the `EMERGENCY` block instantly fires a real-time SMS to a designated caregiver.
+### 5. UI / UX Engineering
+* **Neobrutalism:** High-contrast, stark \#FDF1D0 backgrounds with intense \#000000 block borders mitigate glare and maximize visual clarity for patients experiencing vision degradation.
+* **Ergonomics (Fitts's Law Compliance):** Enormous interactive blocks separated by calculated 80px dead-zones completely eliminate unintentional dwell-triggers.
 
 ---
 
@@ -44,40 +51,56 @@ Project Iris runs almost entirely on the client side, removing the need for expe
 
 ### Prerequisites
 * **Node.js:** v18.0.0 or higher
-* **Browser:** Google Chrome or Microsoft Edge (Required for WebGPU and Ambient `SpeechRecognition` API support).
+* **Python:** v3.9 or higher (Required for LiveKit STT Agent)
+* **Browser:** Google Chrome or Microsoft Edge (Required for WebGPU and WebRTC functionality).
 
-### Installation
-1. **Clone and Install dependencies**
+### Installation & Automation
+
+1. **Clone & Install Dependencies**
    ```bash
    npm install
+   cd worker
+   pip install -r requirements.txt
+   cd ..
    ```
 
 2. **Environment Variables**
-   Create a `.env.local` file in the root directory to configure the Twilio SMS lifeline:
+   Create a `.env.local` file in the root directory AND a `.env` file in the `/worker` directory:
    ```env
-   # Twilio Account Credentials
-   TWILIO_ACCOUNT_SID=your_account_sid_here
-   TWILIO_AUTH_TOKEN=your_auth_token_here
-   TWILIO_PHONE_NUMBER=+1234567890
+   # LiveKit Credentials (Required for Telemedicine & STT)
+   LIVEKIT_URL=wss://your-project.livekit.cloud
+   LIVEKIT_API_KEY=your_api_key
+   LIVEKIT_API_SECRET=your_api_secret
+
+   # Deepgram API Key (Inside /worker/.env)
+   DEEPGRAM_API_KEY=your_deepgram_key
+   ```
+
+3. **Automated Bootstrapping**
+   We utilize local `.bat` scripts to effortlessly orchestrate the Next.js frontend, Python LiveKit Agent, and port conflicts in one click.
    
-   # Emergency Contact
-   EMERGENCY_CONTACT_NUMBER=+0987654321
-   ```
-
-3. **Run the Development Server**
+   **Start the Platform:**
    ```bash
-   npm run dev
+   ./start.bat
    ```
+   *This automatically frees port 3000, starts Next.js, boots the Python agent (`worker/agent.py`), and opens the Patient and Doctor portals.*
 
-4. **Launch**
-   Open [http://localhost:3000](http://localhost:3000) in your Chromium-based browser. Grant Camera and Microphone permissions when prompted to initialize the tracking and ambient context engines.
+   **Stop the Platform:**
+   ```bash
+   ./end.bat
+   ```
+   *This gracefully terminates the Node processes and Python background agents.*
 
 ---
 
-## 🛠️ Tech Stack
-* **Framework:** Next.js 14 (App Router)
-* **Language:** TypeScript
-* **State Management:** Zustand
-* **Styling:** Tailwind CSS (Neobrutalism UI Patterns)
-* **Machine Learning:** MediaPipe (FaceLandmarker), WebLLM (Llama 3.2 1B)
-* **Telephony:** Twilio Node SDK
+## 🛠️ Tech Stack & Dependencies
+* **Frontend Framework:** Next.js 14 (App Router), React 18
+* **Language:** TypeScript, Python 3
+* **State Management:** Zustand (Global Client-Side State)
+* **WebRTC & Realtime:** LiveKit Server SDK, LiveKit React Components, LiveKit Python Agents
+* **Machine Learning & AI:** 
+  * WebLLM (Llama 3.2 1B via WebGPU)
+  * Transformers.js (Whisper Tiny via WASM)
+  * MediaPipe (FaceLandmarker via WASM)
+  * Deepgram & Silero VAD (Python)
+* **Styling:** Tailwind CSS, Framer Motion

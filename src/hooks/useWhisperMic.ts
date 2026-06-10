@@ -46,9 +46,15 @@ export function useWhisperMic(stream: MediaStream | null) {
           }
         }
       } else if (e.data.type === 'result') {
-        const transcript = (e.data.text || "").trim();
+        let transcript = (e.data.text || "").trim();
         useIrisStore.getState().setIsTranscribing(false);
-        if (transcript) {
+        
+        // Filter out whisper hallucinated blank audio tags
+        if (transcript.toUpperCase() === "[BLANK_AUDIO]" || transcript.includes("[SILENCE]")) {
+          transcript = "";
+        }
+
+        if (transcript && useIrisStore.getState().appStage === "project") {
           useIrisStore.getState().setLiveCaption(transcript);
           useIrisStore.getState().setAmbientContext(transcript);
           webLlmService.predictFromAmbientContext(transcript);
@@ -96,6 +102,17 @@ export function useWhisperMic(stream: MediaStream | null) {
 
         // Guardrail 2: Do not listen to ourselves (or room echo)
         if (useIrisStore.getState().isAppSpeaking) {
+          if (chunksRef.current.length > 0) {
+            chunksRef.current = [];
+            totalSamplesRef.current = 0;
+            isSpeakingRef.current = false;
+            silenceStartRef.current = 0;
+          }
+          return;
+        }
+
+        // Guardrail 3: Do not run STT during a live call
+        if (useIrisStore.getState().sessionState !== "idle") {
           if (chunksRef.current.length > 0) {
             chunksRef.current = [];
             totalSamplesRef.current = 0;

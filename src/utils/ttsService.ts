@@ -4,6 +4,8 @@ class TTSService {
   private worker: Worker | null = null;
   private audioCtx: AudioContext | null = null;
   public ready: boolean = false;
+  public localAudioStream: MediaStream | null = null;
+  private mediaStreamDestination: MediaStreamAudioDestinationNode | null = null;
   
   constructor() {
     // Client-side only
@@ -35,6 +37,10 @@ class TTSService {
     }
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume();
+    }
+    if (!this.mediaStreamDestination && this.audioCtx) {
+      this.mediaStreamDestination = this.audioCtx.createMediaStreamDestination();
+      this.localAudioStream = this.mediaStreamDestination.stream;
     }
   }
 
@@ -73,6 +79,9 @@ class TTSService {
     const source = this.audioCtx.createBufferSource();
     source.buffer = buffer;
     source.connect(this.audioCtx.destination);
+    if (this.mediaStreamDestination) {
+      source.connect(this.mediaStreamDestination);
+    }
     source.onended = () => {
       this.resolveNextPromise();
     };

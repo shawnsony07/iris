@@ -19,8 +19,10 @@ interface IrisState {
   isTranscribing: boolean;
   sttDownloadProgress: number;
   sttReady: boolean;
-  liveCaption: string;
-   sttError: string | null;
+  liveCaption: string; // legacy, used for fallback
+  doctorCaption: string;
+  patientCaption: string;
+  sttError: string | null;
   llmStatus: string;
   llmReady: boolean;
   hoveredNodeId: string | null;
@@ -31,6 +33,7 @@ interface IrisState {
   activeContextNodeIds: string[] | null;
   isContextResponse: boolean;
   isAppSpeaking: boolean;
+  sessionState: "idle" | "calling_doctor" | "calling_patient" | "connected";
   isCalibrated: boolean;
   calibrationBounds: { xMin: number; xMax: number; yMin: number; yMax: number } | null;
   currentCalibrationStep: number;
@@ -38,6 +41,7 @@ interface IrisState {
   driftOffset: { x: number; y: number };
   requestRecenter: boolean;
   magneticLockCenter: { x: number; y: number } | null;
+  setSessionState: (state: "idle" | "calling_doctor" | "calling_patient" | "connected") => void;
   setCursor: (x: number, y: number) => void;
   setRawCursor: (x: number, y: number) => void;
   setMagneticLockCenter: (coords: { x: number; y: number } | null) => void;
@@ -62,7 +66,9 @@ interface IrisState {
   setSttDownloadProgress: (progress: number) => void;
   setSttReady: (status: boolean) => void;
   setLiveCaption: (caption: string) => void;
-   setSttError: (error: string | null) => void;
+  setDoctorCaption: (caption: string) => void;
+  setPatientCaption: (caption: string) => void;
+  setSttError: (error: string | null) => void;
   setLlmStatus: (status: string) => void;
   setLlmReady: (ready: boolean) => void;
   setHoveredNodeId: (id: string | null) => void;
@@ -74,6 +80,7 @@ interface IrisState {
   setIsContextResponse: (val: boolean) => void;
   setIsAppSpeaking: (val: boolean) => void;
   executeAction: (targetId: string, targetElement?: Element) => void;
+  wasContextResponse: boolean;
 }
 
 const defaultBlocks = ["Hungry", "Yes", "No", "Toilet", "Physical", "Social", "Pain", "Thirsty"];
@@ -96,7 +103,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   sttDownloadProgress: 0,
   sttReady: false,
   liveCaption: "",
-   sttError: null,
+  doctorCaption: "",
+  patientCaption: "",
+  sttError: null,
   llmStatus: "Loading Model…",
   llmReady: false,
   hoveredNodeId: null,
@@ -106,7 +115,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   isDebugMode: true,
   activeContextNodeIds: null,
   isContextResponse: false,
+  wasContextResponse: false,
   isAppSpeaking: false,
+  sessionState: "idle",
   isCalibrated: false,
   calibrationBounds: null,
   currentCalibrationStep: -1,
@@ -114,6 +125,12 @@ export const useIrisStore = create<IrisState>((set) => ({
   driftOffset: { x: 0, y: 0 },
   requestRecenter: false,
   magneticLockCenter: null,
+  setSessionState: (state) => set((prev) => {
+    if (state !== "connected") {
+      return { sessionState: state, patientCaption: "", doctorCaption: "", liveCaption: "", ambientContext: "", generatedSpeech: null };
+    }
+    return { sessionState: state };
+  }),
   setCursor: (x, y) => set({ cursor: { x, y } }),
   setRawCursor: (x, y) => set({ rawCursor: { x, y } }),
   setMagneticLockCenter: (coords) => set({ magneticLockCenter: coords }),
@@ -123,8 +140,8 @@ export const useIrisStore = create<IrisState>((set) => ({
   setDriftOffset: (offset) => set({ driftOffset: offset }),
   triggerRecenter: () => set({ requestRecenter: true }),
   clearRecenterRequest: () => set({ requestRecenter: false }),
-  addNode: (node) => set((state) => ({ selectedNodes: [...state.selectedNodes, node], activeContextNodeIds: null, isContextResponse: false })),
-  clearNodes: () => set({ selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null }),
+  addNode: (node) => set((state) => ({ selectedNodes: [...state.selectedNodes, node], activeContextNodeIds: null, isContextResponse: false, wasContextResponse: state.isContextResponse || state.wasContextResponse })),
+  clearNodes: () => set({ selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null, wasContextResponse: false }),
   setPredictions: (words) => set({ predictions: words }),
   setIsPredicting: (status) => set({ isPredicting: status }),
   setShowMediaModal: (val) => set({ showMediaModal: val }),
@@ -159,7 +176,9 @@ export const useIrisStore = create<IrisState>((set) => ({
   setSttDownloadProgress: (progress) => set({ sttDownloadProgress: progress }),
   setSttReady: (status) => set({ sttReady: status }),
   setLiveCaption: (caption) => set({ liveCaption: caption }),
-   setSttError: (error) => set({ sttError: error }),
+  setDoctorCaption: (caption) => set({ doctorCaption: caption }),
+  setPatientCaption: (caption) => set({ patientCaption: caption }),
+  setSttError: (error) => set({ sttError: error }),
   setLlmStatus: (status) => set({ llmStatus: status }),
   setLlmReady: (ready) => set({ llmReady: ready }),
   setHoveredNodeId: (id) => set({ hoveredNodeId: id }),
@@ -196,7 +215,7 @@ export const useIrisStore = create<IrisState>((set) => ({
         return {};
       } else if (state.isContextResponse && targetId.startsWith("pred-")) {
         ttsService.speak(nodeVal);
-        return { isContextResponse: false, predictions: [], ambientContext: "" };
+        return { isContextResponse: false, predictions: [], ambientContext: "", generatedSpeech: nodeVal };
       } else if (nodeVal === "Sleep Mode") {
         return { sleepMode: true };
       } else if (nodeVal === "Re-Optimize Layout") {
