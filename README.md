@@ -41,11 +41,11 @@ To ensure 100% reliable transcriptions, Iris utilizes two concurrent audio-proce
    * **Engine:** LiveKit Agents Python SDK.
    * **Implementation:** The `worker/agent.py` script continuously monitors the WebRTC room. It implements **Silero VAD** for frame-perfect Voice Activity Detection and **Deepgram STT** via the LiveKit plugin. This ensures maximum transcription accuracy for the doctor over noisy network conditions.
 
-### 4. Text-To-Speech (TTS):
+### 5. Text-To-Speech (TTS):
    * **Engine:** `onnxruntime-web` running `tinytts.onnx`.
    * **Implementation:** To bypass the browser's native `window.speechSynthesis` API (which often relies on cloud connections and suffers from robotic voices), Iris generates high-quality audio locally via a dedicated Web Worker (`tts.worker.ts`). This guarantees offline availability and consistent vocal latency across all platforms.
 
-### 5. UI / UX Engineering
+### 6. UI / UX Engineering
 * **Neobrutalism:** High-contrast, stark \#FDF1D0 backgrounds with intense \#000000 block borders mitigate glare and maximize visual clarity for patients experiencing vision degradation.
 * **Ergonomics (Fitts's Law Compliance):** Enormous interactive blocks separated by calculated 80px dead-zones completely eliminate unintentional dwell-triggers.
 
