@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { GazeButton } from "./GazeButton";
 import { SpeakHandler } from "./SpeakHandler";
-import { Hand, Smile, Activity, Check, X, Utensils, CupSoda, Tv, RefreshCcw, Moon, AlertTriangle, Settings, Music, Power, MessageCircle, Bath, PhoneCall, PhoneIncoming, PhoneOff } from "lucide-react";
+import { Hand, Smile, Activity, Check, X, Utensils, CupSoda, Tv, RefreshCcw, Moon, AlertTriangle, Settings, Music, Power, MessageCircle, Bath, PhoneCall, PhoneIncoming, PhoneOff, Wind, Lightbulb, Thermometer } from "lucide-react";
 import { StatusBar } from "./StatusBar";
 import { LiveKitWrapper } from "./LiveKitWrapper";
 
@@ -22,6 +22,7 @@ const CATEGORY_MAP: Record<string, { icon: React.ComponentType<{ className?: str
   "Sleep Mode":         { icon: Moon,       accent: "var(--cat-sleep)" },
   "Re-Optimize Layout": { icon: RefreshCcw, accent: "var(--cat-reoptimize)" },
   "Music":              { icon: Music,      accent: "var(--cat-music)" },
+  "Environment":        { icon: Thermometer,accent: "var(--cat-environment)" },
 };
 
 const PREDICTION_ACCENTS = [
@@ -33,7 +34,7 @@ const PREDICTION_ACCENTS = [
 export function GridUI() {
   const {
     selectedNodes, predictions, isPredicting, coreBlocks,
-    activeTone, sleepMode, showMediaModal, isTranscribing,
+    activeTone, sleepMode, showMediaModal, showEnvironmentModal, isTranscribing,
     isDebugMode, toggleDebugMode, isContextResponse,
     generatedSpeech, sessionState, setSessionState, doctorCaption, ambientContext
   } = useIrisStore();
@@ -194,6 +195,60 @@ export function GridUI() {
             accentColor="var(--iris-accent)"
             text="WAKE"
           />
+        </div>
+      )}
+      {/* ── Environment Modal ── */}
+      {showEnvironmentModal && (
+        <div className="fixed inset-0 bg-[var(--iris-bg)] z-[8000] flex flex-col p-8 md:p-12">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-widest text-black">Environment Controls</h2>
+            <GazeButton
+              id="close-env-modal"
+              customDwellTime={800}
+              icon={X}
+              className="w-32 h-16 !bg-[var(--cat-no)]"
+              accentColor="var(--cat-no)"
+              text="CLOSE"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-8 flex-1">
+            <GazeButton
+              id="env-fan-on"
+              customDwellTime={1500}
+              icon={Wind}
+              className="w-full h-full text-4xl"
+              accentColor="var(--cat-social)"
+              text="FAN ON"
+              onClick={() => fetch("/api/room-action", { method: "POST", body: JSON.stringify({ device: "fan", state: "ON" }) })}
+            />
+            <GazeButton
+              id="env-fan-off"
+              customDwellTime={1500}
+              icon={Wind}
+              className="w-full h-full text-4xl"
+              accentColor="var(--cat-pain)"
+              text="FAN OFF"
+              onClick={() => fetch("/api/room-action", { method: "POST", body: JSON.stringify({ device: "fan", state: "OFF" }) })}
+            />
+            <GazeButton
+              id="env-light-on"
+              customDwellTime={1500}
+              icon={Lightbulb}
+              className="w-full h-full text-4xl"
+              accentColor="var(--cat-yes)"
+              text="LIGHT ON"
+              onClick={() => fetch("/api/room-action", { method: "POST", body: JSON.stringify({ device: "light", state: "ON" }) })}
+            />
+            <GazeButton
+              id="env-light-off"
+              customDwellTime={1500}
+              icon={Lightbulb}
+              className="w-full h-full text-4xl"
+              accentColor="var(--cat-no)"
+              text="LIGHT OFF"
+              onClick={() => fetch("/api/room-action", { method: "POST", body: JSON.stringify({ device: "light", state: "OFF" }) })}
+            />
+          </div>
         </div>
       )}
 
@@ -360,7 +415,7 @@ export function GridUI() {
                 customDwellTime={1000}
                 icon={sessionState === "connected" ? PhoneOff : PhoneCall}
                 className="flex-1 h-full"
-                accentColor={sessionState === "connected" ? "#ef4444" : "#3b82f6"}
+                accentColor={sessionState === "connected" ? "#ef4444" : "var(--btn-navy)"}
                 textColor="white"
                 text={sessionState === "connected" ? "END CALL" : "CALL DOCTOR"}
                 onClick={async () => {

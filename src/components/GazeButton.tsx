@@ -115,6 +115,8 @@ export function GazeButton({
       state.setSleepMode(false);
     } else if (id === "close-modal") {
       state.setShowMediaModal(false);
+    } else if (id === "close-env-modal") {
+      state.setShowEnvironmentModal(false);
     } else if (id === "speak-block") {
       document.getElementById("speak-block")?.dispatchEvent(new CustomEvent('dwell-click'));
     } else if (id.startsWith("tone-block-")) {
@@ -145,6 +147,9 @@ export function GazeButton({
         state.reoptimizeLayout();
       } else if (nodeVal === "Music" && state.selectedNodes.includes("Entertainment")) {
         state.setShowMediaModal(true);
+        state.clearNodes();
+      } else if (nodeVal === "Environment") {
+        state.setShowEnvironmentModal(true);
         state.clearNodes();
       } else {
         state.addNode(nodeVal);

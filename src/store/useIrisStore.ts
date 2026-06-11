@@ -10,6 +10,7 @@ interface IrisState {
   predictions: string[];
   isPredicting: boolean;
   showMediaModal: boolean;
+  showEnvironmentModal: boolean;
   sleepMode: boolean;
   blockFrequencies: Record<string, number>;
   coreBlocks: string[];
@@ -56,6 +57,7 @@ interface IrisState {
   setPredictions: (words: string[]) => void;
   setIsPredicting: (status: boolean) => void;
   setShowMediaModal: (val: boolean) => void;
+  setShowEnvironmentModal: (val: boolean) => void;
   setSleepMode: (val: boolean) => void;
   incrementFrequency: (node: string) => void;
   reoptimizeLayout: () => void;
@@ -83,7 +85,7 @@ interface IrisState {
   wasContextResponse: boolean;
 }
 
-const defaultBlocks = ["Hungry", "Yes", "No", "Toilet", "Physical", "Social", "Pain", "Thirsty"];
+const defaultBlocks = ["Hungry", "Yes", "No", "Environment", "Toilet", "Social", "Pain", "Thirsty"];
 
 export const useIrisStore = create<IrisState>((set) => ({
   appStage: 'landing',
@@ -93,6 +95,8 @@ export const useIrisStore = create<IrisState>((set) => ({
   predictions: [],
   isPredicting: false,
   showMediaModal: false,
+  showEnvironmentModal: false,
+  setShowEnvironmentModal: (val) => set({ showEnvironmentModal: val }),
   sleepMode: false,
   blockFrequencies: {},
   coreBlocks: [...defaultBlocks],
@@ -200,6 +204,8 @@ export const useIrisStore = create<IrisState>((set) => ({
       return { sleepMode: false };
     } else if (targetId === "close-modal") {
       return { showMediaModal: false };
+    } else if (targetId === "close-env-modal") {
+      return { showEnvironmentModal: false };
     } else if (targetId.startsWith("tone-block-")) {
       const tone = targetId.replace("tone-block-", "");
       return { activeTone: state.activeTone === tone ? null : tone };
@@ -234,6 +240,8 @@ export const useIrisStore = create<IrisState>((set) => ({
         return { coreBlocks: newGrid };
       } else if (nodeVal === "Music" && state.selectedNodes.includes("Entertainment")) {
         return { showMediaModal: true, selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false };
+      } else if (nodeVal === "Environment") {
+        return { showEnvironmentModal: true, selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false };
       } else {
         const newNodes = [...state.selectedNodes, nodeVal];
         const newFreqs = { ...state.blockFrequencies };

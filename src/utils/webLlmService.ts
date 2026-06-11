@@ -153,8 +153,12 @@ Write the single sentence now:`;
     useIrisStore.getState().setIsPredicting(true);
 
     const systemMessage = "You are a helpful assistant.";
-    const userMessage = `Someone asks: "${ambientContext}"
-List 3 short, separate, natural responses I can say back. Format as a comma-separated list.
+    const userMessage = `Someone says: "${ambientContext}"
+If they say it is hot or they are sweating, output EXACTLY this: [ACTION: {"device": "fan", "state": "ON"}]
+If they say they are cold, output EXACTLY this: [ACTION: {"device": "fan", "state": "OFF"}]
+If they say it is dark, output EXACTLY this: [ACTION: {"device": "light", "state": "ON"}]
+If the input is just background noise (e.g. "(dramatic music)"), sound effects, or not a proper conversational statement directed at me, output EXACTLY this: [IGNORE]
+Otherwise, list 3 short, separate, natural responses I can say back. Format as a comma-separated list.
 Example: Yes I did, No not yet, I don't know`;
 
     try {
@@ -163,17 +167,53 @@ Example: Yes I did, No not yet, I don't know`;
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage }
         ],
-        max_tokens: 25,
+        max_tokens: 50,
         temperature: 0.7,
       }));
 
       let content = reply.choices[0]?.message?.content || "";
+
+      // Check if the LLM decided to ignore non-conversational input
+      if (content.includes("[IGNORE]")) {
+        console.log("[WebLLM] Ignored non-conversational input:", ambientContext);
+        return;
+      }
+
+      // Check if the LLM outputted an action command
+      const actionMatch = content.match(/\[ACTION:\s*({.*?})\s*\]/);
+      if (actionMatch) {
+        try {
+          const args = JSON.parse(actionMatch[1]);
+          console.log("[WebLLM] Action Extracted:", args);
+          // Fire API asynchronously
+          fetch("/api/room-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device: args.device, state: args.state })
+          }).catch(e => console.error("Room action failed", e));
+          
+          // Override predictions to show action taken
+          const actionVerb = args.state === "ON" ? "turned on" : "turned off";
+          const uiResponses = [
+            `I ${actionVerb} the ${args.device}.`,
+            "Is that better?",
+            "Thank you."
+          ];
+          useIrisStore.getState().setPredictions(uiResponses);
+          useIrisStore.getState().setIsContextResponse(true);
+          return;
+        } catch (e) {
+          console.error("Failed to parse action arguments", e);
+        }
+      }
       // Strip common LLM conversational filler prefixes
       content = content.replace(/^.*?:\s*/, "");
-      content = content.replace(/["']/g, "");
       // Strip parenthetical explanations e.g. "(This means yes)" or even unclosed ones like "(This acknowledges"
       content = content.replace(/\(.*?(?:\)|$)/g, "");
       content = content.replace(/\[.*?(?:\]|$)/g, "");
+      
+      // Remove unwanted special characters, keeping letters, numbers, spaces, and basic punctuation
+      content = content.replace(/[^a-zA-Z0-9\s.,?!']/g, "");
       
       // Split by commas OR newlines, then clean up numbers (e.g. "1. Yes")
       const parsedArray = content.split(/,|\n/)
