@@ -131,7 +131,12 @@ export const useIrisStore = create<IrisState>((set) => ({
   magneticLockCenter: null,
   setSessionState: (state) => set((prev) => {
     if (state !== "connected") {
-      return { sessionState: state, patientCaption: "", doctorCaption: "", liveCaption: "", ambientContext: "", generatedSpeech: null };
+      return { 
+        sessionState: state, 
+        patientCaption: "", doctorCaption: "", liveCaption: "", 
+        ambientContext: "", generatedSpeech: null,
+        predictions: [], isContextResponse: false, isPredicting: false
+      };
     }
     return { sessionState: state };
   }),
@@ -144,7 +149,12 @@ export const useIrisStore = create<IrisState>((set) => ({
   setDriftOffset: (offset) => set({ driftOffset: offset }),
   triggerRecenter: () => set({ requestRecenter: true }),
   clearRecenterRequest: () => set({ requestRecenter: false }),
-  addNode: (node) => set((state) => ({ selectedNodes: [...state.selectedNodes, node], activeContextNodeIds: null, isContextResponse: false, wasContextResponse: state.isContextResponse || state.wasContextResponse })),
+  addNode: (node) => set((state) => {
+    if (state.generatedSpeech) {
+      return { selectedNodes: [node], generatedSpeech: null, activeContextNodeIds: null, isContextResponse: false, wasContextResponse: state.isContextResponse || state.wasContextResponse };
+    }
+    return { selectedNodes: [...state.selectedNodes, node], activeContextNodeIds: null, isContextResponse: false, wasContextResponse: state.isContextResponse || state.wasContextResponse };
+  }),
   clearNodes: () => set({ selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null, wasContextResponse: false }),
   setPredictions: (words) => set({ predictions: words }),
   setIsPredicting: (status) => set({ isPredicting: status }),
@@ -199,7 +209,11 @@ export const useIrisStore = create<IrisState>((set) => ({
         targetElement.dispatchEvent(new CustomEvent('dwell-click'));
       }
     } else if (targetId === "clear-block") {
-      return { selectedNodes: [], predictions: [], activeContextNodeIds: null, isContextResponse: false, generatedSpeech: null };
+      return { 
+        selectedNodes: [], predictions: [], activeContextNodeIds: null, 
+        isContextResponse: false, generatedSpeech: null,
+        ambientContext: "", doctorCaption: "", patientCaption: "", liveCaption: ""
+      };
     } else if (targetId === "wake-block") {
       return { sleepMode: false };
     } else if (targetId === "close-modal") {
@@ -220,8 +234,37 @@ export const useIrisStore = create<IrisState>((set) => ({
         fetch("https://api.twilio.com/2010-04-01/Accounts/AC_mock/Messages.json", { method: "POST" }).catch(() => {});
         return {};
       } else if (state.isContextResponse && targetId.startsWith("pred-")) {
+        const doctorContext = state.ambientContext; // capture BEFORE clearing
+        const lowerVal = nodeVal.toLowerCase();
+        const lowerCtx = doctorContext.toLowerCase();
+
+        let device: string | null = null;
+        let hwState: string | null = null;
+
+        if (lowerVal.includes("turn on the fan") || (lowerVal === "yes" && (lowerCtx.includes("hot") || lowerCtx.includes("warm")))) {
+          device = "fan"; hwState = "ON";
+        } else if (lowerVal.includes("turn off the fan") || (lowerVal === "yes" && lowerCtx.includes("cold"))) {
+          device = "fan"; hwState = "OFF";
+        } else if (lowerVal.includes("turn on the light") || lowerVal.includes("turn on the lamp") || (lowerVal === "yes" && lowerCtx.includes("dark"))) {
+          device = "light"; hwState = "ON";
+        } else if (lowerVal.includes("turn off the light") || lowerVal.includes("turn off the lamp") || (lowerVal === "yes" && (lowerCtx.includes("bright") || lowerCtx.includes("too light")))) {
+          device = "light"; hwState = "OFF";
+        }
+
+        if (device && hwState) {
+          console.log(`[Store] Hardware trigger: ${device} -> ${hwState} (ctx="${doctorContext}", val="${nodeVal}")`);
+          fetch("/api/room-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device, state: hwState }),
+          }).catch(err => console.error("Hardware API error:", err));
+        }
+
         ttsService.speak(nodeVal);
-        return { isContextResponse: false, predictions: [], ambientContext: "", generatedSpeech: nodeVal };
+        return { 
+          isContextResponse: false, predictions: [], ambientContext: "", 
+          generatedSpeech: nodeVal, doctorCaption: "", patientCaption: "", liveCaption: "" 
+        };
       } else if (nodeVal === "Sleep Mode") {
         return { sleepMode: true };
       } else if (nodeVal === "Re-Optimize Layout") {

@@ -118,7 +118,29 @@ export function GazeButton({
     } else if (id === "close-env-modal") {
       state.setShowEnvironmentModal(false);
     } else if (id === "speak-block") {
-      document.getElementById("speak-block")?.dispatchEvent(new CustomEvent('dwell-click'));
+      // executeAction handles the dwell-click dispatch — don't fire it here too
+      useIrisStore.getState().executeAction("speak-block", document.getElementById("speak-block"));
+      
+      // Auto-clear sentence after speaking
+      // @ts-ignore
+      if (window.clearSentenceTimeout) clearTimeout(window.clearSentenceTimeout);
+      // @ts-ignore
+      window.clearSentenceTimeout = setTimeout(() => {
+        useIrisStore.getState().executeAction("clear-block", null);
+      }, 4000);
+
+    } else if (id.startsWith("pred-")) {
+      // executeAction handles the speak — don't dispatch dwell-click here too
+      useIrisStore.getState().executeAction(id, document.getElementById(id));
+
+      // Auto-clear sentence after speaking
+      // @ts-ignore
+      if (window.clearSentenceTimeout) clearTimeout(window.clearSentenceTimeout);
+      // @ts-ignore
+      window.clearSentenceTimeout = setTimeout(() => {
+        useIrisStore.getState().executeAction("clear-block", null);
+      }, 4000);
+
     } else if (id.startsWith("tone-block-")) {
       const tone = id.replace("tone-block-", "");
       state.setActiveTone(state.activeTone === tone ? null : tone);
@@ -136,11 +158,39 @@ export function GazeButton({
       }
       
       if (state.isContextResponse && id.startsWith("pred-")) {
+        const doctorContext = useIrisStore.getState().ambientContext; // capture BEFORE clearing
         state.setGeneratedSpeech(nodeVal);
-        ttsService.speak(nodeVal);
         state.setIsContextResponse(false);
         state.setPredictions([]);
         state.setAmbientContext("");
+
+        // --- Direct hardware trigger based on button text + doctor context ---
+        const lowerVal = nodeVal.toLowerCase();
+        const lowerCtx = doctorContext.toLowerCase();
+
+        let device: string | null = null;
+        let hwState: string | null = null;
+
+        if (lowerVal.includes("turn on the fan") || (lowerVal === "yes" && (lowerCtx.includes("hot") || lowerCtx.includes("warm")))) {
+          device = "fan"; hwState = "ON";
+        } else if (lowerVal.includes("turn off the fan") || (lowerVal === "yes" && lowerCtx.includes("cold"))) {
+          device = "fan"; hwState = "OFF";
+        } else if (lowerVal.includes("turn on the light") || (lowerVal === "yes" && lowerCtx.includes("dark"))) {
+          device = "light"; hwState = "ON";
+        } else if (lowerVal.includes("turn off the light") || (lowerVal === "yes" && lowerCtx.includes("bright"))) {
+          device = "light"; hwState = "OFF";
+        }
+
+        if (device && hwState) {
+          console.log(`[GazeButton] Direct hardware trigger: ${device} -> ${hwState}`);
+          fetch("/api/room-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device, state: hwState }),
+          }).catch(err => console.error("Hardware API error:", err));
+        }
+
+        ttsService.speak(nodeVal);
       } else if (nodeVal === "Sleep Mode") {
         state.setSleepMode(true);
       } else if (nodeVal === "Re-Optimize Layout") {

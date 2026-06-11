@@ -14,7 +14,10 @@ class WebLlmService {
     
     try {
       await previous;
-      return await task();
+      const timeoutPromise = new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error("WebLLM request timed out")), 8000)
+      );
+      return await Promise.race([task(), timeoutPromise]);
     } finally {
       resolveLock();
     }
@@ -141,25 +144,122 @@ Write the single sentence now:`;
   }
   async predictFromAmbientContext(ambientContext: string): Promise<void> {
     if (!ambientContext) return;
-    
-    // If the LLM is still downloading/loading, provide a hardcoded fallback
-    // so the user still gets a response UI immediately.
+
+    const lower = ambientContext.toLowerCase().trim();
+
+    // --- JS-side question type detection (reliable, no LLM needed) ---
+    const isYesNo = /^(are|is|do|does|did|can|could|will|would|have|has|were|was)\b/i.test(lower);
+
+    // Environmental keyword → deterministic third button
+    const envKeywords: Record<string, string> = {
+      hot: "Please turn on the fan",
+      warm: "Please turn on the fan",
+      cold: "Please turn off the fan",
+      chilly: "Please turn off the fan",
+      dark: "Please turn on the light",
+      dim: "Please turn on the light",
+      bright: "Please turn off the light",
+    };
+    let envButton: string | null = null;
+    for (const [kw, action] of Object.entries(envKeywords)) {
+      if (lower.includes(kw)) { envButton = action; break; }
+    }
+
+    // If LLM not ready, use safe deterministic fallbacks
     if (!this.engine || !this.isLoaded) {
-      useIrisStore.getState().setPredictions(["Yes", "No", "I don't know"]);
+      const fallback = isYesNo
+        ? ["Yes", "No", envButton ?? "I'm not sure"]
+        : ["I'm okay", "Not feeling well", "I need help"];
+      useIrisStore.getState().setPredictions(fallback);
       useIrisStore.getState().setIsContextResponse(true);
       return;
     }
 
     useIrisStore.getState().setIsPredicting(true);
 
-    const systemMessage = "You are a helpful assistant.";
-    const userMessage = `Someone says: "${ambientContext}"
-If they say it is hot or they are sweating, output EXACTLY this: [ACTION: {"device": "fan", "state": "ON"}]
-If they say they are cold, output EXACTLY this: [ACTION: {"device": "fan", "state": "OFF"}]
-If they say it is dark, output EXACTLY this: [ACTION: {"device": "light", "state": "ON"}]
-If the input is just background noise (e.g. "(dramatic music)"), sound effects, or not a proper conversational statement directed at me, output EXACTLY this: [IGNORE]
-Otherwise, list 3 short, separate, natural responses I can say back. Format as a comma-separated list.
-Example: Yes I did, No not yet, I don't know`;
+    try {
+      let predictions: string[];
+
+      if (isYesNo) {
+        // For Yes/No questions: slots 1 & 2 are fixed. Only ask LLM for slot 3 if no env keyword.
+        let third = envButton;
+        if (!third) {
+          const reply = await this.enqueue(() => this.engine!.chat.completions.create({
+            messages: [
+              { role: "system", content: "You are an AAC assistant. Output ONLY a single short phrase (2-5 words) a patient can say. No quotes, no punctuation at end." },
+              { role: "user", content: `Doctor asks: "${ambientContext}". Give one short natural patient reply that is NOT simply Yes or No.` }
+            ],
+            max_tokens: 20,
+            temperature: 0.7,
+          }));
+          third = reply.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || "A little bit";
+        }
+        predictions = ["Yes", "No", third];
+
+      } else {
+        // Open question: ask LLM for 3 natural replies, but give it a very simple task
+        const reply = await this.enqueue(() => this.engine!.chat.completions.create({
+          messages: [
+            { role: "system", content: "You are an AAC assistant. Output ONLY a JSON array of 3 short patient replies (each 2-5 words). Example: [\"I'm okay\",\"Not great\",\"I'm in pain\"]" },
+            { role: "user", content: `Doctor says: "${ambientContext}"` }
+          ],
+          max_tokens: 60,
+          temperature: 0.7,
+        }));
+
+        let content = reply.choices[0]?.message?.content || "";
+        content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+        console.log("[WebLLM] Open-question prediction:", content);
+
+        try {
+          const parsed = JSON.parse(content);
+          predictions = Array.isArray(parsed) && parsed.length >= 3
+            ? parsed.slice(0, 3).map(String)
+            : ["I'm okay", "Not feeling well", "I need help"];
+        } catch {
+          // Even if JSON fails, try to pull out any quoted strings
+          const matches = content.match(/"([^"]+)"/g)?.map((s: string) => s.replace(/"/g, ""));
+          predictions = matches && matches.length >= 3
+            ? matches.slice(0, 3)
+            : ["I'm okay", "Not feeling well", "I need help"];
+        }
+      }
+
+      useIrisStore.getState().setPredictions(predictions);
+      useIrisStore.getState().setIsContextResponse(true);
+    } catch (error) {
+      console.error("Local LLM Context Prediction error:", error);
+      const fallback = isYesNo
+        ? ["Yes", "No", envButton ?? "I'm not sure"]
+        : ["I'm okay", "Not feeling well", "I need help"];
+      useIrisStore.getState().setPredictions(fallback);
+      useIrisStore.getState().setIsContextResponse(true);
+    } finally {
+      useIrisStore.getState().setIsPredicting(false);
+    }
+  }
+
+  async evaluatePatientIntentForHardware(patientText: string, context?: string): Promise<void> {
+    if (!this.engine || !this.isLoaded || !patientText) return;
+
+    // We use a strict prompt to identify if the spoken text implies an environmental command
+    const systemMessage = "You are a logical intent parser.";
+    const userMessage = `The doctor said: "${context || 'nothing'}"
+The patient replied: "${patientText}"
+
+RULES:
+1. If the conversation has NOTHING to do with temperature (hot/cold) or lighting (dark/bright), you must output [NONE].
+2. If the patient explicitly asks or implies they want the fan ON, output [ACTION: {"device": "fan", "state": "ON"}]
+3. If the patient explicitly asks or implies they want the fan OFF, output [ACTION: {"device": "fan", "state": "OFF"}]
+4. If the patient explicitly asks or implies they want the light ON, output [ACTION: {"device": "light", "state": "ON"}]
+5. If the patient explicitly asks or implies they want the light OFF, output [ACTION: {"device": "light", "state": "OFF"}]
+
+EXAMPLES:
+Doctor: "Are you hungry?" / Patient: "Yes" -> [NONE]
+Doctor: "Are you feeling hot?" / Patient: "Yes" -> [ACTION: {"device": "fan", "state": "ON"}]
+Doctor: "Are you feeling cold?" / Patient: "Yes" -> [ACTION: {"device": "fan", "state": "OFF"}]
+
+CRITICAL: Output NOTHING else. No explanations. Just the tag.`;
 
     try {
       const reply = await this.enqueue(() => this.engine!.chat.completions.create({
@@ -167,72 +267,31 @@ Example: Yes I did, No not yet, I don't know`;
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage }
         ],
-        max_tokens: 50,
-        temperature: 0.7,
+        max_tokens: 100, // increased to avoid truncation
+        temperature: 0.1, // low temperature for strict evaluation
       }));
 
-      let content = reply.choices[0]?.message?.content || "";
-
-      // Check if the LLM decided to ignore non-conversational input
-      if (content.includes("[IGNORE]")) {
-        console.log("[WebLLM] Ignored non-conversational input:", ambientContext);
-        return;
-      }
-
-      // Check if the LLM outputted an action command
-      const actionMatch = content.match(/\[ACTION:\s*({.*?})\s*\]/);
+      const content = reply.choices[0]?.message?.content || "";
+      console.log("[WebLLM] Raw Hardware Eval Output:", content);
+      
+      const actionMatch = content.match(/\[ACTION:\s*(\{[\s\S]*?\})\s*\]/);
+      
       if (actionMatch) {
         try {
           const args = JSON.parse(actionMatch[1]);
-          console.log("[WebLLM] Action Extracted:", args);
+          console.log("[WebLLM] Hardware Action Triggered by Patient:", args);
           // Fire API asynchronously
           fetch("/api/room-action", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ device: args.device, state: args.state })
-          }).catch(e => console.error("Room action failed", e));
-          
-          // Override predictions to show action taken
-          const actionVerb = args.state === "ON" ? "turned on" : "turned off";
-          const uiResponses = [
-            `I ${actionVerb} the ${args.device}.`,
-            "Is that better?",
-            "Thank you."
-          ];
-          useIrisStore.getState().setPredictions(uiResponses);
-          useIrisStore.getState().setIsContextResponse(true);
-          return;
+            body: JSON.stringify({ device: args.device, state: String(args.state).toUpperCase() })
+          }).catch(err => console.error("Hardware API error:", err));
         } catch (e) {
-          console.error("Failed to parse action arguments", e);
+          console.error("Failed to parse hardware intent JSON:", actionMatch[1]);
         }
       }
-      // Strip common LLM conversational filler prefixes
-      content = content.replace(/^.*?:\s*/, "");
-      // Strip parenthetical explanations e.g. "(This means yes)" or even unclosed ones like "(This acknowledges"
-      content = content.replace(/\(.*?(?:\)|$)/g, "");
-      content = content.replace(/\[.*?(?:\]|$)/g, "");
-      
-      // Remove unwanted special characters, keeping letters, numbers, spaces, and basic punctuation
-      content = content.replace(/[^a-zA-Z0-9\s.,?!']/g, "");
-      
-      // Split by commas OR newlines, then clean up numbers (e.g. "1. Yes")
-      const parsedArray = content.split(/,|\n/)
-        .map(w => w.replace(/^\d+\.\s*/, "").trim())
-        .filter(w => w.length > 0)
-        .slice(0, 3);
-      
-      if (parsedArray.length > 0) {
-        useIrisStore.getState().setPredictions(parsedArray);
-        useIrisStore.getState().setIsContextResponse(true);
-      } else {
-        // Fallback if the LLM output couldn't be parsed
-        useIrisStore.getState().setPredictions(["Yes", "No", "I don't know"]);
-        useIrisStore.getState().setIsContextResponse(true);
-      }
     } catch (error) {
-      console.error("Local LLM Context Prediction error:", error);
-    } finally {
-      useIrisStore.getState().setIsPredicting(false);
+      console.error("Local LLM Hardware Eval error:", error);
     }
   }
 

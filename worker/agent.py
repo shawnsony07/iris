@@ -60,9 +60,18 @@ async def entrypoint(ctx: JobContext):
     def on_track_subscribed(track: rtc.Track, publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             if participant.identity == "Doctor":
+                logger.info(f"track_subscribed: starting pipeline for Doctor")
                 asyncio.create_task(_audio_stream_handler(track, participant))
             else:
                 logger.info(f"Ignoring audio track from {participant.identity}")
+
+    # Also handle participants already in the room when the agent joins
+    for participant in ctx.room.remote_participants.values():
+        if participant.identity == "Doctor":
+            for publication in participant.track_publications.values():
+                if publication.track and publication.track.kind == rtc.TrackKind.KIND_AUDIO:
+                    logger.info(f"Found existing Doctor audio track, starting pipeline")
+                    asyncio.create_task(_audio_stream_handler(publication.track, participant))
 
     @ctx.room.on("participant_disconnected")
     def on_participant_disconnected(participant: rtc.RemoteParticipant):

@@ -3,10 +3,10 @@
 #include <TFT_eSPI.h>
 #include <ArduinoJson.h>
 
-// --- UPDATE THESE THREE LINES ---
+// --- UPDATE THESE TWO LINES ---
 const char* ssid = "your wifi ssid";
 const char* password = "your wifi password";
-const char* mqtt_server = "192.168.X.X"; 
+const char* mqtt_server = "192.168.1.7"; // Your computer's IP address
 // --------------------------------
 
 const char* topic = "iris/room/action";

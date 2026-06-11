@@ -49,8 +49,15 @@ export function useWhisperMic(stream: MediaStream | null) {
         let transcript = (e.data.text || "").trim();
         useIrisStore.getState().setIsTranscribing(false);
         
-        // Filter out whisper hallucinated blank audio tags
-        if (transcript.toUpperCase() === "[BLANK_AUDIO]" || transcript.includes("[SILENCE]")) {
+        // Filter out whisper hallucinated blank audio tags and noise brackets
+        if (
+          transcript.toUpperCase() === "[BLANK_AUDIO]" || 
+          transcript.includes("[SILENCE]") ||
+          transcript.includes("[") ||
+          transcript.includes("]") ||
+          transcript.includes("(") ||
+          transcript.includes(")")
+        ) {
           transcript = "";
         }
 

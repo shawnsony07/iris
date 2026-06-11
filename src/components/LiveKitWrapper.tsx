@@ -75,35 +75,48 @@ function DataChannelManager({ isDoctor }: { isDoctor: boolean }) {
   const setPatientCaption = useIrisStore((state) => state.setPatientCaption);
   const generatedSpeech = useIrisStore((state) => state.generatedSpeech);
   
-  // Single data channel listener for all topics to avoid multi-hook conflicts
-  const { send } = useDataChannel((msg) => {
+  // Listen to doctor transcripts from the Python STT agent
+  const { send } = useDataChannel("doctor_transcript", (msg) => {
     const text = new TextDecoder().decode(msg.payload);
-    
-    if (msg.topic === "doctor_transcript") {
-      const cleanText = text.replace(/\[BLANK_AUDIO\]/gi, "").trim();
-      if (!cleanText) return; // ignore silence
-      
-      if (isDoctor) {
-        setDoctorCaption(cleanText);
-      } else {
-        setLiveCaption(cleanText); // used for predictive trigger on patient side
-        setDoctorCaption(cleanText); // store doctor's speech globally
+    let cleanText = text.replace(/\[BLANK_AUDIO\]/gi, "").trim();
+    // Ignore background noise labels like [typing] or (clicking)
+    if (cleanText.includes("[") || cleanText.includes("]") || cleanText.includes("(") || cleanText.includes(")")) {
+      cleanText = "";
+    }
+    if (!cleanText) return;
 
-        
-        // Trigger local predictive LLM when the doctor finishes speaking
-        // @ts-ignore
-        if (window.doctorSpeechTimeout) clearTimeout(window.doctorSpeechTimeout);
-        // @ts-ignore
-        window.doctorSpeechTimeout = setTimeout(() => {
-          import("@/utils/webLlmService").then(({ webLlmService }) => {
-            webLlmService.predictFromAmbientContext(text);
-          });
-        }, 1500);
-      }
-    } else if (msg.topic === "patient_text") {
-      if (isDoctor) {
-        setPatientCaption(text);
-      }
+    if (isDoctor) {
+      setDoctorCaption(cleanText);
+    } else {
+      setLiveCaption(cleanText);
+      setDoctorCaption(cleanText);
+      useIrisStore.getState().setAmbientContext(cleanText);
+
+      // Debounce: wait 1.5s after doctor stops speaking before generating predictions
+      // @ts-ignore
+      if (window.doctorSpeechTimeout) clearTimeout(window.doctorSpeechTimeout);
+      // @ts-ignore
+      window.doctorSpeechTimeout = setTimeout(() => {
+        webLlmService.predictFromAmbientContext(cleanText);
+      }, 1500);
+
+      // Auto-clear captions after 8 seconds of silence
+      // @ts-ignore
+      if (window.clearCaptionTimeout) clearTimeout(window.clearCaptionTimeout);
+      // @ts-ignore
+      window.clearCaptionTimeout = setTimeout(() => {
+        useIrisStore.getState().setLiveCaption("");
+        useIrisStore.getState().setDoctorCaption("");
+        useIrisStore.getState().setAmbientContext("");
+      }, 8000);
+    }
+  });
+
+  // Listen to patient text sent from the patient portal
+  useDataChannel("patient_text", (msg) => {
+    const text = new TextDecoder().decode(msg.payload);
+    if (isDoctor) {
+      setPatientCaption(text);
     }
   });
   const room = useRoomContext();

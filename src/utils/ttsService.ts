@@ -1,4 +1,5 @@
 import { useIrisStore } from "@/store/useIrisStore";
+import { webLlmService } from "@/utils/webLlmService";
 
 class TTSService {
   private worker: Worker | null = null;
@@ -48,6 +49,8 @@ class TTSService {
   private silenceTimeout: NodeJS.Timeout | null = null;
 
   public speak(text: string): Promise<void> {
+    if (!text) return Promise.resolve();
+
     return new Promise((resolve) => {
       if (!this.ready || !this.worker) {
         console.warn('[TTSService] Not ready yet.');
@@ -61,6 +64,7 @@ class TTSService {
       }
       useIrisStore.getState().setIsAppSpeaking(true);
       console.log(`[TTSService] Synthesizing: "${text}"`);
+      
       this.speakPromises.push(resolve);
       this.worker.postMessage({ type: 'speak', text });
     });

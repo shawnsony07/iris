@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     // In production, this would be an environment variable.
     const client = mqtt.connect('mqtt://127.0.0.1:1883');
 
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       client.on('connect', () => {
         const payload = JSON.stringify({ device, state });
         client.publish('iris/room/action', payload, { qos: 0 }, (error) => {
