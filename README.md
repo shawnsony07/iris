@@ -14,6 +14,82 @@ Iris features a strict **Neobrutalist UI** engineered around **Fitts's Law** —
 
 ---
 
+## 🚀 Getting Started
+
+### Prerequisites
+
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | v18.0.0+ | |
+| Python | v3.10+ | For LiveKit STT Agent |
+| Browser | Chrome / Edge | WebGPU required for local LLM |
+| LiveKit Account | Any tier | [livekit.io](https://livekit.io) |
+| Deepgram Account | Any tier | [deepgram.com](https://deepgram.com) |
+| Mosquitto | 2.x | Local MQTT broker |
+| Seeed Wio Terminal | — | Optional, for IoT control |
+
+### Installation
+
+> [!IMPORTANT]
+> **Local Deployment Only:** Project Iris is designed to run locally to maximize privacy, reduce latency, and leverage client-side hardware (WebGPU) for AI inference. There is no hosted web version or deployable link. You must clone and run this system locally on your machine following the steps below.
+
+**1. Clone and install dependencies**
+```bash
+git clone https://github.com/shawnsony07/iris.git
+cd iris
+npm install
+cd worker
+python -m venv venv
+venv\Scripts\activate       # Windows
+pip install -r requirements.txt
+cd ..
+```
+
+**2. Environment variables**
+
+Create `.env.local` in the project root:
+```env
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+TWILIO_ACCOUNT_SID=your_sid          # Optional: emergency alerts
+TWILIO_AUTH_TOKEN=your_token         # Optional
+TWILIO_PHONE_NUMBER=+1...            # Optional
+EMERGENCY_CONTACT_NUMBER=+1...       # Optional
+```
+
+Create `worker/.env`:
+```env
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+DEEPGRAM_API_KEY=your_deepgram_key
+```
+
+**3. Mosquitto MQTT Broker** (for IoT control)
+```bash
+# Install Mosquitto, then start with:
+mosquitto -v -c mosquitto.conf
+```
+
+**4. Flash the Wio Terminal** (optional)  
+Open `hardware/iris-hardware-mqtt/iris-hardware-mqtt.ino` in Arduino IDE, set your Wi-Fi credentials and broker IP, and flash to the Wio Terminal.
+
+### Running
+
+**Start everything:**
+```bash
+./start.bat
+```
+This frees port 3000, starts the Next.js frontend, boots the Python STT agent, and opens both portals in the browser.
+
+**Stop everything:**
+```bash
+./end.bat
+```
+
+---
+
 ## 🏗️ System Architecture Overview
 
 Iris is a distributed system composed of five independent layers that communicate through well-defined interfaces:
@@ -275,79 +351,6 @@ The communication grid uses a frequency-reranking system. Every time a patient s
 
 **Predictive Overlay:**  
 When the doctor speaks and the LLM generates response options, the standard AAC grid is replaced by three large prediction buttons. Each button is colour-coded (orange, teal, pink) and labelled with the LLM-generated phrase. Selecting one speaks the phrase via TTS, sends it to the doctor over the data channel, and immediately returns the grid to normal. If a hardware action was inferred, it fires simultaneously.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-| Requirement | Version | Notes |
-|---|---|---|
-| Node.js | v18.0.0+ | |
-| Python | v3.10+ | For LiveKit STT Agent |
-| Browser | Chrome / Edge | WebGPU required for local LLM |
-| LiveKit Account | Any tier | [livekit.io](https://livekit.io) |
-| Deepgram Account | Any tier | [deepgram.com](https://deepgram.com) |
-| Mosquitto | 2.x | Local MQTT broker |
-| Seeed Wio Terminal | — | Optional, for IoT control |
-
-### Installation
-
-**1. Clone and install dependencies**
-```bash
-git clone https://github.com/shawnsony07/iris.git
-cd iris
-npm install
-cd worker
-python -m venv venv
-venv\Scripts\activate       # Windows
-pip install -r requirements.txt
-cd ..
-```
-
-**2. Environment variables**
-
-Create `.env.local` in the project root:
-```env
-NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-TWILIO_ACCOUNT_SID=your_sid          # Optional: emergency alerts
-TWILIO_AUTH_TOKEN=your_token         # Optional
-TWILIO_PHONE_NUMBER=+1...            # Optional
-EMERGENCY_CONTACT_NUMBER=+1...       # Optional
-```
-
-Create `worker/.env`:
-```env
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-DEEPGRAM_API_KEY=your_deepgram_key
-```
-
-**3. Mosquitto MQTT Broker** (for IoT control)
-```bash
-# Install Mosquitto, then start with:
-mosquitto -v -c mosquitto.conf
-```
-
-**4. Flash the Wio Terminal** (optional)  
-Open `hardware/iris-hardware-mqtt/iris-hardware-mqtt.ino` in Arduino IDE, set your Wi-Fi credentials and broker IP, and flash to the Wio Terminal.
-
-### Running
-
-**Start everything:**
-```bash
-./start.bat
-```
-This frees port 3000, starts the Next.js frontend, boots the Python STT agent, and opens both portals in the browser.
-
-**Stop everything:**
-```bash
-./end.bat
-```
 
 ---
 
