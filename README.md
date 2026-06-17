@@ -67,8 +67,12 @@ DEEPGRAM_API_KEY=your_deepgram_key
 ```
 
 **3. Mosquitto MQTT Broker** (for IoT control)
+- **Windows:** Download the installer from [mosquitto.org/download](https://mosquitto.org/download/) or run `winget install eclipse.mosquitto`
+- **macOS:** `brew install mosquitto`
+- **Linux:** `sudo apt-install mosquitto`
+
+Once installed, start the local broker with:
 ```bash
-# Install Mosquitto, then start with:
 mosquitto -v -c mosquitto.conf
 ```
 
