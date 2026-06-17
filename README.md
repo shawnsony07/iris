@@ -436,28 +436,4 @@ iris/
 └── end.bat                       # One-click stop
 ```
 
----
 
-## 📋 Changelog
-
-### v3.1.0 — IoT Environment Control & Telemedicine Reliability
-- **New:** Conversational IoT environment control (fan, lights via MQTT)
-- **New:** Doctor-to-patient live speech pipeline (Deepgram → LiveKit → Patient LLM)
-- **New:** Hybrid AI prediction engine (JS classification + LLM generation)
-- **Fixed:** Double TTS audio on every button press
-- **Fixed:** Doctor STT silently dropped due to missing topic in `useDataChannel`
-- **Fixed:** Python agent missing Doctor audio on late join
-- **Fixed:** Prediction buttons not cleared on call end
-
-### v3.0.0 — Full AI Stack & Telemedicine
-- Llama 3.2 1B WebGPU local inference
-- ONNX Kokoro TTS Web Worker
-- LiveKit WebRTC telemedicine
-- Neobrutalist UI redesign
-
-### v2.0.0 — Improved UI/UX & Backend Guardrails
-- Enhanced eye tracking reliability
-- Performance optimisations
-
-### v1.0.0 — Initial Release
-- Whisper STT, MediaPipe gaze tracking, basic AAC grid
