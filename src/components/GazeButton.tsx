@@ -126,7 +126,7 @@ export function GazeButton({
       if (window.clearSentenceTimeout) clearTimeout(window.clearSentenceTimeout);
       // @ts-ignore
       window.clearSentenceTimeout = setTimeout(() => {
-        useIrisStore.getState().executeAction("clear-block", null);
+        useIrisStore.getState().executeAction("clear-block", undefined);
       }, 4000);
 
     } else if (id.startsWith("pred-")) {
@@ -138,7 +138,7 @@ export function GazeButton({
       if (window.clearSentenceTimeout) clearTimeout(window.clearSentenceTimeout);
       // @ts-ignore
       window.clearSentenceTimeout = setTimeout(() => {
-        useIrisStore.getState().executeAction("clear-block", null);
+        useIrisStore.getState().executeAction("clear-block", undefined);
       }, 4000);
 
     } else if (id.startsWith("tone-block-")) {
