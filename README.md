@@ -102,16 +102,16 @@ Iris is a distributed system composed of five independent layers that communicat
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PATIENT BROWSER                          │
 │                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  MediaPipe   │  │  WebLLM      │  │  ONNX TTS Worker     │  │
-│  │  Gaze Engine │  │  Llama 3.2   │  │  (Kokoro / tinytts)  │  │
-│  │  (WASM/CPU)  │  │  1B (WebGPU) │  │  (Web Worker)        │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
-│         │                 │                      │              │
-│  ┌──────▼─────────────────▼──────────────────────▼───────────┐  │
-│  │              Next.js App Router (React 19)                 │  │
-│  │  Zustand Store │ GazeButton │ GridUI │ LiveKitWrapper      │  │
-│  └──────────────────────────┬──────────────────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │  MediaPipe   │  │  WebLLM      │  │  ONNX TTS Worker     │   │
+│  │  Gaze Engine │  │  Llama 3.2   │  │  (Kokoro / tinytts)  │   │
+│  │  (WASM/CPU)  │  │  1B (WebGPU) │  │  (Web Worker)        │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
+│         │                 │                     │               │
+│  ┌──────▼─────────────────▼─────────────────────▼───────────┐   │
+│  │              Next.js App Router (React 19)               │   │
+│  │ Zustand Store │ GazeButton │ GridUI │ LiveKitWrapper     │   │
+│  └──────────────────────────┬───────────────────────────────┘   │
 └─────────────────────────────┼───────────────────────────────────┘
                               │ WebRTC DataChannel + Audio
               ┌───────────────┼────────────────┐
