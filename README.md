@@ -144,6 +144,8 @@ Iris is a distributed system composed of five independent layers that communicat
 
 ### 1. Vision & Gaze Tracking Layer
 
+![5-Point Eye-Tracking Calibration](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/calibration.png)
+
 **Engine:** MediaPipe FaceLandmarker v0.10 (WebAssembly)  
 **Processing Model:** CPU-bound, deliberate isolation from GPU
 
@@ -165,6 +167,8 @@ To eliminate accidental selections (the "Midas Touch" problem), actions are trig
 ---
 
 ### 2. Telemedicine & WebRTC Layer
+
+![Incoming WebRTC Telemedicine Call](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/patient-receiving-call.png)
 
 **Engine:** LiveKit SDK v2 (`livekit-client`, `@livekit/components-react`)  
 **Server:** LiveKit Cloud (hosted, global edge nodes)  
@@ -217,6 +221,8 @@ The local LLM runs entirely inside the patient's browser tab. No prompt data, no
 
 **The Prediction Engine — `predictFromAmbientContext`:**
 
+![Predictive AI generating contextual responses](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/response-to-doctor.png)
+
 When the Python STT agent delivers the doctor's transcript to the patient browser, Iris waits 1.5 seconds (debounce, to allow for sentence completion) and then generates three response options for the patient to select.
 
 This is a two-stage process designed around the real capabilities of a 1B model:
@@ -240,6 +246,9 @@ By separating intent routing from semantic creativity, the system plays to each 
 A `requestLock` promise chain (`enqueue()` method) serialises all LLM calls. Because the WebGPU inference engine cannot handle concurrent requests, any new prediction or evaluation waits for the previous one to complete before starting. An 8-second timeout wraps each call so a stuck request never blocks the queue indefinitely.
 
 **AAC Phrase Generation — `generate`:**  
+
+![LLM generating a sarcastic response](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/sarcastic%20tts.png)
+
 For standard grid-based communication (patient selects word nodes and presses SPEAK), the LLM takes the selected keyword array and generates a single fluent first-person spoken sentence. For example: `["Thirsty"] → "I need some water please."` or `["Physical", "Adjust"] → "Please adjust my position."` Single-word affirmations (Yes, No) bypass the LLM entirely and are returned immediately.
 
 ---
@@ -304,6 +313,8 @@ The TTS system deliberately avoids `window.speechSynthesis`, which is cloud-depe
 
 ### 6. IoT Environment Control Layer
 
+![IoT Environmental Control Dashboard](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/environment-control.png)
+
 **Broker:** Eclipse Mosquitto (local, `localhost:1883`)  
 **Hardware Client:** Seeed Wio Terminal (ARM Cortex-M4, Arduino/C++)  
 **Server Interface:** Next.js API Route (`/api/room-action`)  
@@ -349,6 +360,9 @@ Zustand provides a lightweight store that allows components to subscribe only to
 ---
 
 ### 8. UI/UX Engineering
+
+![Project Iris Landing Page Interactive Eye](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/landing.gif)
+![Main High-Contrast AAC Grid](https://raw.githubusercontent.com/shawnsony07/iris/24da0614b3eae80854881fb51e45c00b37451c81/resized/UI.png)
 
 **Framework:** Next.js 16 App Router, React 19  
 **Styling:** Tailwind CSS v4  
