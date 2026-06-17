@@ -119,7 +119,7 @@ export function GazeButton({
       state.setShowEnvironmentModal(false);
     } else if (id === "speak-block") {
       // executeAction handles the dwell-click dispatch — don't fire it here too
-      useIrisStore.getState().executeAction("speak-block", document.getElementById("speak-block"));
+      useIrisStore.getState().executeAction("speak-block", document.getElementById("speak-block") || undefined);
       
       // Auto-clear sentence after speaking
       // @ts-ignore
@@ -131,7 +131,7 @@ export function GazeButton({
 
     } else if (id.startsWith("pred-")) {
       // executeAction handles the speak — don't dispatch dwell-click here too
-      useIrisStore.getState().executeAction(id, document.getElementById(id));
+      useIrisStore.getState().executeAction(id, document.getElementById(id) || undefined);
 
       // Auto-clear sentence after speaking
       // @ts-ignore
