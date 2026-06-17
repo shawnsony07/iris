@@ -6,7 +6,7 @@
 [![LiveKit](https://img.shields.io/badge/WebRTC-LiveKit-red)](https://livekit.io/)
 [![WebLLM](https://img.shields.io/badge/LLM-Llama_3.2_1B_WebGPU-blue)](https://webllm.mlc.ai/)
 [![MediaPipe](https://img.shields.io/badge/Gaze-MediaPipe_FaceLandmarker-orange)](https://developers.google.com/mediapipe)
-[![Python](https://img.shields.io/badge/STT-Deepgram_+_LiveKit_Agents-yellow)](https://python.org/)
+[![Python](https://img.shields.io/badge/STT-Deepgram_+_LiveKit_Agents-yellow)](https://deepgram.com/)
 [![MQTT](https://img.shields.io/badge/IoT-MQTT_+_Wio_Terminal-teal)](https://mosquitto.org/)
 
 **Project Iris** is a fully accessible, eye-tracking Augmentative and Alternative Communication (AAC) platform built for patients with severe neurodegenerative diseases such as ALS, locked-in syndrome, and late-stage Parkinson's. It operates with near-zero latency by running its entire AI inference stack client-side — in the browser — using WebGPU and WebAssembly. It connects to a doctor in real time via a LiveKit-powered WebRTC telemedicine layer, and physically controls the patient's environment (fan, lights) through an MQTT-connected IoT device.
