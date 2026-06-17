@@ -1,5 +1,7 @@
 # Project Iris 👁️
 
+![Project Iris](https://github.com/shawnsony07/iris/blob/e024e8558ae2e6ef0c4b617ad3d21f83deb217f0/iris.png?raw=true)
+
 [![Version](https://img.shields.io/badge/version-3.1.0-brightgreen)](https://github.com/shawnsony07/iris/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Zustand](https://img.shields.io/badge/State-Zustand-brown)](https://github.com/pmndrs/zustand)
