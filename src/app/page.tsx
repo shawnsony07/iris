@@ -27,6 +27,14 @@ function AppContent() {
     }
   }, [stream, appStage]);
 
+  // Simulated Doctor Response for Web Demo
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      useIrisStore.getState().setAmbientContext("Hello! Are you feeling too warm? Should I turn on the fan?");
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Recenter keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
