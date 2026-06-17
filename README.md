@@ -34,7 +34,9 @@ Iris features a strict **Neobrutalist UI** engineered around **Fitts's Law** —
 ### Installation
 
 > [!IMPORTANT]
-> **Local Deployment Only:** Project Iris is designed to run locally to maximize privacy, reduce latency, and leverage client-side hardware (WebGPU) for AI inference. There is no hosted web version or deployable link. You must clone and run this system locally on your machine following the steps below.
+> **Live Preview (Frontend-Only):** A partial, frontend-only exhibition demo is hosted here for preview purposes:  
+> 🔗 [https://iris-mu-livid.vercel.app/](https://iris-mu-livid.vercel.app/)  
+> **Note:** For full functionality (Doctor STT backend, LiveKit telemedicine, and MQTT Hardware integration), you **must** download the repository and run it locally.
 
 **1. Clone and install dependencies**
 ```bash
@@ -94,6 +96,12 @@ This frees port 3000, starts the Next.js frontend, boots the Python STT agent, a
 ```bash
 ./end.bat
 ```
+
+### ⏳ First-Time Loading (Important!)
+
+![Speaker Loading Model](https://github.com/shawnsony07/iris/blob/main/resized/speaker-loading.png?raw=true)
+
+> **Note on "Fetching param cache"**: Do not be alarmed if the UI shows "Fetching param cache..." the very first time you run the app. Because Project Iris runs its predictive AI (Llama 3.2 1B) entirely locally inside your browser via WebGPU, the browser must download the model parameters into its cache. This download is roughly 1.5GB and may take a few minutes initially. Subsequent loads will be instantaneous as the model is cached directly on your device.
 
 ---
 
