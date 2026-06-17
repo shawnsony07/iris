@@ -10,6 +10,7 @@ import {
 } from "@livekit/components-react";
 import { useIrisStore } from "@/store/useIrisStore";
 import { ttsService } from "@/utils/ttsService";
+import { webLlmService } from "@/utils/webLlmService";
 
 interface LiveKitWrapperProps {
   roomName: string;
