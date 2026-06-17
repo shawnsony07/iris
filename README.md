@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/badge/version-3.1.0-brightgreen)](https://github.com/shawnsony07/iris/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Zustand](https://img.shields.io/badge/State-Zustand-brown)](https://github.com/pmndrs/zustand)
 [![LiveKit](https://img.shields.io/badge/WebRTC-LiveKit-red)](https://livekit.io/)
 [![WebLLM](https://img.shields.io/badge/LLM-Llama_3.2_1B_WebGPU-blue)](https://webllm.mlc.ai/)
 [![MediaPipe](https://img.shields.io/badge/Gaze-MediaPipe_FaceLandmarker-orange)](https://developers.google.com/mediapipe)
@@ -153,11 +154,11 @@ Raw pupil coordinates exhibit micro-saccades — rapid involuntary eye movements
 
 A separate drift compensation system detects slow gaze drift (caused by head position changes over a session) and applies a running offset correction. Patients can trigger a re-center at any time via a gaze-holdable button.
 
-**Dwell-Click Events:**  
-Selection is performed by sustained gaze fixation. When the gaze coordinate lies within a button's bounding box for a configurable dwell time (default 1800ms for standard buttons, 800ms for the SPEAK button), a `CustomEvent('dwell-click')` is dispatched on that element. This triggers the button's action handler identically to a mouse click, meaning the entire input modality is transparent to the rest of the application.
+**Cursor Snapping & Dwell Ring Feedback:**  
+When the user's gaze enters a button's bounding box, the cursor intelligently snaps to the center of the target. As the patient continues to hold their gaze on the button, a visual dwell ring progressively fills around the crosshair. This provides immediate, clear visual feedback that the target is locked and ready for selection.
 
-**Blink-to-Select:**  
-An alternative input mode detects deliberate blinks via the `eyeBlinkLeft` / `eyeBlinkRight` landmark probability channels. A blink below a configurable threshold (distinguishing deliberate blinks from normal blinking) while the gaze is hovering over a button triggers selection.
+**Blink-to-Select (Exclusive Selection Mode):**  
+To eliminate accidental selections (the "Midas Touch" problem), actions are triggered *exclusively* by deliberate blinking, not by dwell time. The system monitors the `eyeBlinkLeft` and `eyeBlinkRight` landmark probability channels. If a blink registers below a configurable threshold — distinguishing a forceful, deliberate blink from involuntary physiological blinking — while the cursor is snapped to a button, the action is dispatched.
 
 ---
 
@@ -334,7 +335,18 @@ The Wio Terminal connects to the local Wi-Fi network and the Mosquitto broker on
 
 ---
 
-### 7. UI/UX Engineering
+### 7. Global State Management (Zustand)
+
+**Library:** Zustand (`zustand`)  
+**Store:** `useIrisStore.ts`
+
+Iris relies on Zustand as the central nervous system connecting all its asynchronous, highly independent layers. With WebRTC data channels, local WebGPU LLM inference, Web Worker TTS, and MediaPipe all firing events asynchronously, traditional React context would trigger catastrophic re-renders. 
+
+Zustand provides a lightweight store that allows components to subscribe only to the specific slices of state they need (e.g., `isPredicting`, `ambientContext`, `callState`). Critically, Zustand allows state to be read and mutated outside of the React render cycle, which is essential for `LiveKitWrapper` and the conversational hardware trigger (`executeAction`) to handle events instantly without waiting for React batch updates.
+
+---
+
+### 8. UI/UX Engineering
 
 **Framework:** Next.js 16 App Router, React 19  
 **Styling:** Tailwind CSS v4  
