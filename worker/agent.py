@@ -1,12 +1,16 @@
+import os
 import asyncio
 import logging
 from dotenv import load_dotenv
 
 from livekit import rtc
 from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli
-from livekit.plugins import deepgram, silero
+from livekit.plugins import deepgram
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+
+if "LIVEKIT_URL" not in os.environ and "NEXT_PUBLIC_LIVEKIT_URL" in os.environ:
+    os.environ["LIVEKIT_URL"] = os.environ["NEXT_PUBLIC_LIVEKIT_URL"]
 logger = logging.getLogger("iris-agent")
 logger.setLevel(logging.INFO)
 
@@ -15,9 +19,7 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
     logger.info(f"Connected to room: {ctx.room.name}")
 
-    # Set up Silero VAD for detecting when speech starts/stops
-    vad = silero.VAD.load()
-    
+
     # Set up Deepgram STT plugin
     stt = deepgram.STT()
 
@@ -25,9 +27,7 @@ async def entrypoint(ctx: JobContext):
         # Create an audio stream from the incoming track
         audio_stream = rtc.AudioStream(track)
         
-        # Pass the raw audio stream into VAD
-        vad_stream = vad.stream()
-        
+
         # We also need a stream for STT
         stt_stream = stt.stream()
 
