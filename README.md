@@ -161,16 +161,41 @@ The gaze engine processes a live webcam stream through MediaPipe's FaceLandmarke
 
 The raw gaze coordinates are intentionally processed on the CPU rather than GPU. This design decision explicitly reserves all available VRAM for the local LLM (Llama 3.2 1B), which requires ~700MB of GPU memory for inference. Running two heavy GPU workloads simultaneously would cause frame drops on integrated graphics hardware (the typical deployment environment for bedside devices).
 
-**Kalman Filtering & Drift Compensation:**  
-Raw pupil coordinates exhibit micro-saccades — rapid involuntary eye movements of 0.1–2 degrees that are invisible to the user but cause significant cursor jitter on screen. Iris applies a Kalman filter to the X/Y coordinates, modeling eye movement as a system with position and velocity states. The filter predicts the next position based on the previous velocity vector and corrects it when the new measurement arrives, smoothing jitter without introducing perceptible lag.
+**Relative Iris Math (Decoupling Head Movement):**  
+To prevent the cursor from moving when the patient moves their head, the gaze engine calculates the iris position *relative to the physical eye socket* rather than its absolute position in the camera frame.
+```math
+\text{EyeSpan} = |X_{\text{outer}} - X_{\text{inner}}|
+```
+```math
+\text{Ratio} = \frac{X_{\text{iris}} - \min(X_{\text{outer}}, X_{\text{inner}})}{\text{EyeSpan}}
+```
+The left and right eye ratios are then averaged and inverted (to compensate for camera mirroring) to produce a stable 0.0 to 1.0 gaze coordinate.
 
-A separate drift compensation system detects slow gaze drift (caused by head position changes over a session) and applies a running offset correction. Patients can trigger a re-center at any time via a gaze-holdable button.
+**Calibration (Least-Squares Affine Transform):**  
+To map the normalized 0.0-1.0 gaze ratios to the physical screen pixels, Iris uses a 5-point calibration system. This calculates an optimal $3 \times 3$ affine transformation matrix using Linear Least-Squares Regression to bend the raw data to match the unique curvature of the user's eyes and their specific monitor placement:
+```math
+\text{Screen}_X = (a \cdot \text{Gaze}_X) + (b \cdot \text{Gaze}_Y) + c
+```
+```math
+\text{Screen}_Y = (d \cdot \text{Gaze}_X) + (e \cdot \text{Gaze}_Y) + f
+```
+
+**EMA Smoothing (Jitter Elimination):**  
+Raw pupil coordinates exhibit micro-saccades — rapid involuntary eye movements that cause significant cursor jitter on screen. Rather than a computationally expensive Kalman filter, Iris applies a highly efficient Exponential Moving Average (EMA) filter to the X/Y coordinates. 
+```math
+\text{Smooth}_t = \alpha \cdot \text{NewPos} + (1 - \alpha) \cdot \text{Smooth}_{t-1}
+```
+With $\alpha = 0.12$, the cursor acts as a low-pass filter shock absorber, blending 12% of the new frame's data with 88% of the previous frame's data, providing a buttery smooth glide with zero perceptible latency.
 
 **Cursor Snapping & Dwell Ring Feedback:**  
 When the user's gaze enters a button's bounding box, the cursor intelligently snaps to the center of the target. As the patient continues to hold their gaze on the button, a visual dwell ring progressively fills around the crosshair. This provides immediate, clear visual feedback that the target is locked and ready for selection.
 
 **Blink-to-Select (Exclusive Selection Mode):**  
-To eliminate accidental selections (the "Midas Touch" problem), actions are triggered *exclusively* by deliberate blinking, not by dwell time. The system monitors the `eyeBlinkLeft` and `eyeBlinkRight` landmark probability channels. If a blink registers below a configurable threshold — distinguishing a forceful, deliberate blink from involuntary physiological blinking — while the cursor is snapped to a button, the action is dispatched.
+To eliminate accidental selections (the "Midas Touch" problem), actions are triggered *exclusively* by deliberate blinking, not by dwell time. The system calculates the **Eye Aspect Ratio (EAR)** using 6 facial landmarks surrounding the eyelid:
+```math
+\text{EAR} = \frac{|P_2 - P_6| + |P_3 - P_5|}{2 \cdot |P_1 - P_4|}
+```
+When $\text{EAR}$ drops below a calculated threshold (distinguishing a forceful, deliberate blink from an involuntary physiological blink), the cursor is mathematically frozen in place so the eyelid dragging down doesn't cause a downward spike, and the action is dispatched.
 
 ---
 
